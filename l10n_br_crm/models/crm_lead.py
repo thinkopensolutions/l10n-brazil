@@ -75,6 +75,8 @@ class CrmLead(models.Model):
         :Return: True or False.
         """
         result = True
+        if not self.inscr_est:
+            return result
         if self.inscr_est != 'ISENTO' or self.partner_name:
             state_code = self.state_id.code or ''
             uf = state_code.lower()

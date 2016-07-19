@@ -56,5 +56,8 @@ class ResCompany(models.Model):
     fiscal_rule_parent_id = fields.Many2one(
         'account.fiscal.position.rule', u'Conjunto de Regras Fiscais',
         domain="[('parent_id', '=', False)]")
+<<<<<<< HEAD
     ipbt_token = fields.Char(string='IPBT Token')
+=======
     fiscal_comment = fields.Text(u'Observação Fiscal')
+>>>>>>> c33e05707e8cd43ae943f3b2307a601587ffe724

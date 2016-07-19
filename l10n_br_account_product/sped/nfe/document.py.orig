@@ -343,9 +343,23 @@ class NFe200(FiscalDocument):
         """Detalhe"""
 
         self.det.nItem.valor = index
+<<<<<<< HEAD
+
+        if invoice_line.product_id:
+            self.det.prod.cProd.valor = invoice_line.product_id.code or ''
+            self.det.prod.cEAN.valor = invoice_line.product_id.ean13 or ''
+            self.det.prod.cEANTrib.valor = invoice_line.product_id.ean13 or ''
+            self.det.prod.xProd.valor = (
+                invoice_line.product_id.name[:120] or '')
+        else:
+            self.det.prod.cProd.valor = invoice_line.code or ''
+            self.det.prod.xProd.valor = invoice_line.name[:120] or ''
+
+=======
         self.det.prod.cProd.valor = invoice_line.product_id.code or ''
         self.det.prod.cEAN.valor = invoice_line.product_id.ean13 or ''
         self.det.prod.xProd.valor = invoice_line.fiscal_document_desc[:120] or ''
+>>>>>>> c33e05707e8cd43ae943f3b2307a601587ffe724
         self.det.prod.NCM.valor = punctuation_rm(
             invoice_line.fiscal_classification_id.code or '')[:8]
         self.det.prod.EXTIPI.valor = punctuation_rm(
@@ -709,10 +723,15 @@ class NFe310(NFe200):
         self.nfe.infNFe.ide.dhSaiEnt.valor = datetime.strptime(
             invoice.date_in_out, '%Y-%m-%d %H:%M:%S')
         self.aut_xml = self._get_AutXML()
+<<<<<<< HEAD
+        self.aut_xml.CNPJ.valor = punctuation_rm(
+            invoice.company_id.accountant_cnpj_cpf)
+=======
         # commented because of below error 
         # Rejeição: CNPJ do destinatário já autorizado para download
         # self.aut_xml.CNPJ.valor = punctuation_rm(
         # invoice.company_id.accountant_cnpj_cpf)
+>>>>>>> c33e05707e8cd43ae943f3b2307a601587ffe724
         self.nfe.infNFe.autXML.append(self.aut_xml)
 
     def _receiver(self, invoice, company, nfe_environment):

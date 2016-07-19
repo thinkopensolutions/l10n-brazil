@@ -46,6 +46,7 @@ class AccountFiscalPositionTemplate(models.Model):
          ('review', u'Revisão'), ('approved', u'Aprovada'),
          ('unapproved', u'Não Aprovada')], 'Status', readonly=True,
         track_visibility='onchange', select=True, default='draft')
+    cfop_id = fields.Many2one('l10n_br_account_product.cfop', 'CFOP')
 
     @api.multi
     def onchange_type(self, type):

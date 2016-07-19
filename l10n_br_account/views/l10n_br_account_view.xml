@@ -184,6 +184,7 @@
                         <group>
 					        <field name="code" select="1"/>
 					        <field name="name" select="1"/>
+					        <field name="inscr_est_indicator" select="1"/>
 					        <field name="is_company" select="1"/>
 					        <field name="default"/>
 					        <group string="Recupera Impostos" colspan="4">
@@ -403,6 +404,7 @@
 						    <field name="name"/>
 						    <field name="internal_type"/>
 						    <field name="parent_id"/>
+						    <field name="issqn_percent"/>
 					    </group>
                     </sheet>
 				</form>

@@ -343,7 +343,12 @@ class ImportDeclarationLine(models.Model):
     amount_discount = fields.Float(u'Valor',
                                    digits=dp.get_precision('Account'),
                                    default=0.00)
+<<<<<<< HEAD
+
+
+=======
     
+>>>>>>> c33e05707e8cd43ae943f3b2307a601587ffe724
 class L10nBrIcmsRelief(models.Model):
 
     _name = 'l10n_br_account_product.icms_relief'

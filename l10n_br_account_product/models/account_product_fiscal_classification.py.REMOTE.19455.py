@@ -21,14 +21,9 @@ from openerp import models, fields, api
 from openerp.addons import decimal_precision as dp
 
 from openerp.addons.l10n_br_account.models.l10n_br_account import (
-    L10nBrTaxDefinition,
-    L10nBrTaxDefinitionTemplate
+    L10n_brTaxDefinition,
+    L10n_brTaxDefinitionTemplate
 )
-from openerp.addons.l10n_br_account.sped.ibpt.deolhonoimposto import (
-    DeOlhoNoImposto,
-    get_ibpt_product
-)
-from openerp.addons.l10n_br_base.tools.misc import punctuation_rm
 
 
 class AccountProductFiscalClassificationTemplate(models.Model):
@@ -84,9 +79,8 @@ class AccountProductFiscalClassificationTemplate(models.Model):
         compute='_compute_taxes')
 
     tax_estimate_ids = fields.One2many(
-        comodel_name='l10n_br_tax.estimate.template',
-        inverse_name='fiscal_classification_id',
-        string=u'Impostos Estimados')
+        'l10n_br_tax.estimate.template', 'fiscal_classification_id',
+        'Impostos Estimados')
 
     _sql_constraints = [
         ('account_fiscal_classfication_code_uniq', 'unique (code)',
@@ -98,7 +92,7 @@ class AccountProductFiscalClassificationTemplate(models.Model):
         help=u"Código Especificador da Substituição Tributária ")
 
 
-class L10nBrTaxDefinitionTemplateModel(L10nBrTaxDefinitionTemplate):
+class L10n_brTaxDefinitionTemplateModel(L10n_brTaxDefinitionTemplate):
     """Model for tax definition template"""
 
     fiscal_classification_id = fields.Many2one(
@@ -116,19 +110,19 @@ class L10nBrTaxDefinitionTemplateModel(L10nBrTaxDefinitionTemplate):
     ]
 
 
-class L10nBrTaxDefinitionSaleTemplate(L10nBrTaxDefinitionTemplateModel,
-                                      models.Model):
+class L10n_brTaxDefinitionSaleTemplate(L10n_brTaxDefinitionTemplateModel,
+                                       models.Model):
     """Definition a class model for sales tax and tax code template"""
     _name = 'l10n_br_tax.definition.sale.template'
 
 
-class L10nBrTaxDefinitionPurchaseTemplate(L10nBrTaxDefinitionTemplateModel,
-                                          models.Model):
+class L10n_brTaxDefinitionPurchaseTemplate(L10n_brTaxDefinitionTemplateModel,
+                                           models.Model):
     """Definition a class model for purchase tax and tax code template"""
     _name = 'l10n_br_tax.definition.purchase.template'
 
 
-class L10nBrTaxEstimateModel(models.AbstractModel):
+class L10n_brTaxEstimateModel(models.AbstractModel):
     _name = 'l10n_br_tax.estimate.model'
     _auto = False
 
@@ -164,7 +158,7 @@ class L10nBrTaxEstimateModel(models.AbstractModel):
     origin = fields.Char('Fonte', size=32)
 
 
-class L10nBrTaxEstimateTemplate(models.Model):
+class L10n_brTaxEstimateTemplate(models.Model):
     _name = 'l10n_br_tax.estimate.template'
     _inherit = 'l10n_br_tax.estimate.model'
 
@@ -224,9 +218,6 @@ class AccountProductFiscalClassification(models.Model):
         compute='_compute_taxes', store=True)
 
     tax_estimate_ids = fields.One2many(
-        comodel_name='l10n_br_tax.estimate',
-        inverse_name='fiscal_classification_id',
-        string=u'Impostos Estimados')
         'l10n_br_tax.estimate', 'fiscal_classification_id',
         'Impostos Estimados')
 
@@ -238,42 +229,8 @@ class AccountProductFiscalClassification(models.Model):
         ('account_fiscal_classfication_code_uniq', 'unique (code)',
          u'Já existe um classificação fiscal com esse código!')]
 
-    @api.multi
-    def get_ibpt(self):
-        for item in self:
-            brazil = item.env['res.country'].search([('code', '=', 'BR')])
-            states = item.env['res.country.state'].search([('country_id', '=',
-                                                            brazil.id)])
-            company = item.company_id or item.env.user.company_id
-            config = DeOlhoNoImposto(company.ipbt_token,
-                                     punctuation_rm(company.cnpj_cpf),
-                                     company.state_id.code)
-            tax_estimate = item.env['l10n_br_tax.estimate']
-            for state in states:
-                result = get_ibpt_product(
-                    config,
-                    punctuation_rm(item.code or ''),
-                    ex='0')
-                update = tax_estimate.search([('state_id', '=', state.id),
-                                              ('origin', '=', 'IBPT-WS'),
-                                              ('fiscal_classification_id',
-                                               '=', item.id)])
-                vals = {
-                    'fiscal_classification_id': item.id,
-                    'origin': 'IBPT-WS',
-                    'state_id': state.id,
-                    'state_taxes': result.estadual,
-                    'federal_taxes_national': result.nacional,
-                    'federal_taxes_import': result.importado,
-                    }
-                if update:
-                    update.write(vals)
-                else:
-                    tax_estimate.create(vals)
-        return True
 
-
-class L10nBrTaxDefinitionModel(L10nBrTaxDefinition):
+class L10n_brTaxDefinitionModel(L10n_brTaxDefinition):
     _name = 'l10n_br_tax.definition.model'
 
     fiscal_classification_id = fields.Many2one(
@@ -291,20 +248,20 @@ class L10nBrTaxDefinitionModel(L10nBrTaxDefinition):
     ]
 
 
-class L10nBrTaxDefinitionSale(L10nBrTaxDefinitionModel, models.Model):
+class L10n_brTaxDefinitionSale(L10n_brTaxDefinitionModel, models.Model):
     _name = 'l10n_br_tax.definition.sale'
 
 
-class L10nBrTaxDefinitionPurchase(L10nBrTaxDefinitionModel, models.Model):
+class L10n_brTaxDefinitionPurchase(L10n_brTaxDefinitionModel, models.Model):
     _name = 'l10n_br_tax.definition.purchase'
 
 
-class L10nBrTaxEstimate(models.Model):
+class L10n_brTaxEstimate(models.Model):
     _name = 'l10n_br_tax.estimate'
     _inherit = 'l10n_br_tax.estimate.model'
 
     fiscal_classification_id = fields.Many2one(
-        'account.product.fiscal.classification',
+        'account.product.fiscal.classification.template',
         'Fiscal Classification', select=True)
 
 

@@ -227,8 +227,6 @@ class AccountProductFiscalClassification(models.Model):
         comodel_name='l10n_br_tax.estimate',
         inverse_name='fiscal_classification_id',
         string=u'Impostos Estimados')
-        'l10n_br_tax.estimate', 'fiscal_classification_id',
-        'Impostos Estimados')
 
     cest = fields.Char(
         string='CEST',

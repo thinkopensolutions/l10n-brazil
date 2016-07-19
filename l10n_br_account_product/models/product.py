@@ -58,3 +58,5 @@ class ProductTemplate(models.Model):
 
     service_type_id = fields.Many2one(
         'l10n_br_account.service.type', u'Tipo de Serviço')
+
+    fiscal_document_desc  = fields.Char(string='Fiscal Document Description',size=120)

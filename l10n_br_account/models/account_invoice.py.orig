@@ -121,6 +121,7 @@ class AccountInvoice(models.Model):
         'l10n_br_account.document_event', 'document_event_ids',
         u'Eventos')
     fiscal_comment = fields.Text(u'Observação Fiscal')
+<<<<<<< HEAD
     cnpj_cpf = fields.Char(
         string=u'CNPJ/CPF',
         related='partner_id.cnpj_cpf',
@@ -133,9 +134,11 @@ class AccountInvoice(models.Model):
         string=u'Inscrição Estadual',
         related='partner_id.inscr_est',
     )
+=======
     amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
     amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
     withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
+>>>>>>> c33e05707e8cd43ae943f3b2307a601587ffe724
 
     _order = 'internal_number desc'
     

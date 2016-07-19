@@ -22,6 +22,7 @@ import datetime
 
 from openerp import models, fields, api, _
 from openerp.exceptions import Warning as UserError
+from openerp.exceptions import Warning
 
 TYPE = [
     ('input', u'Entrada'),
@@ -207,6 +208,8 @@ class L10nBrAccountServiceType(models.Model):
     internal_type = fields.Selection(
         [('view', u'Visualização'), ('normal', 'Normal')], 'Tipo Interno',
         required=True, default='normal')
+    issqn_percent = fields.Float('ISSQN Percent')
+    
 
     @api.multi
     def name_get(self):
@@ -398,6 +401,10 @@ class L10nBrAccountPartnerFiscalType(models.Model):
     icms = fields.Boolean('Recupera ICMS')
 
     ipi = fields.Boolean('Recupera IPI')
+    inscr_est_indicator = fields.Selection([('1', u'Contribuinte'),
+                                              ('2', u'Simples Nacional'),
+                                              ('9', u'Não Contribuinte')], 
+                                            default='9', string=u'Código Indicador de IE')
 
     @api.constrains('default', 'is_company')
     def _check_default(self):
@@ -475,3 +482,81 @@ class L10nBrTaxDefinition(object):
     company_id = fields.Many2one('res.company', string='Company',
                                  related='tax_id.company_id',
                                  store=True, readonly=True)
+
+
+class AccountInvoiceTax(models.Model):
+
+    _inherit = "account.invoice.tax"
+    
+    deduction_account_id = fields.Many2one('account.account','Tax Account for Deduction')
+    
+     
+    @api.v8
+    def compute(self, invoice):
+        result = super(AccountInvoiceTax,self).compute(invoice)
+        for line in invoice.invoice_line:
+            taxes = line.invoice_line_tax_id.compute_all(
+                (line.price_unit * (1 - (line.discount or 0.0) / 100.0)),
+                line.quantity, line.product_id, invoice.partner_id)['taxes']
+            for tax in taxes:
+                key = (tax['tax_code_id'], tax['base_code_id'], tax['account_collected_id'] or line.account_id.id)
+                if key in result.keys():
+                    if invoice.type in ('out_invoice','in_invoice'):
+                        result[key]['deduction_account_id'] = tax.get('account_deduced_id',False)
+                    else:
+                        result[key]['deduction_account_id'] = tax.get('account_paid_deduced_id',False)
+        return result
+     
+    @api.v7
+    def compute(self, cr, uid, invoice_id, context=None):
+        recs = self.browse(cr, uid, [], context)
+        invoice = recs.env['account.invoice'].browse(invoice_id)
+        return recs.compute(invoice)
+    
+    @api.model
+    #create counterpart credit tax
+    def move_line_get(self, invoice_id):
+        res = super(AccountInvoiceTax, self).move_line_get(invoice_id)
+        inv = self.env['account.invoice'].browse(invoice_id)
+        self._cr.execute(
+            'SELECT * FROM account_invoice_tax WHERE invoice_id = %s',
+            (invoice_id,)
+        )
+        for row in self._cr.dictfetchall():
+            if row['amount'] and not row['deduction_account_id']:
+                if row['tax_code_id']:
+                    if self.env['account.tax.code'].browse(row['tax_code_id']).tax_discount:
+                        raise Warning("Please define Tax Account for Deduction for tax %s"%row['name'])
+            if row['amount'] and row['tax_amount'] and row['deduction_account_id']:
+                res.append({
+                    'type': 'tax',
+                    'name': row['name'],
+                    'price_unit': row['amount'],
+                    'quantity': 1,
+                    'price': -row['amount'] or 0.0,
+                    'account_id': row['deduction_account_id'],
+                    'tax_code_id': False,
+                    'tax_amount': False,
+                    'account_analytic_id': row['account_analytic_id'],
+                })
+        #================ comment moves from withholing lines =======================================================
+        # if inv.type == 'out_invoice' and len(inv.withholding_tax_lines):
+        #     self._cr.execute(
+        #         'SELECT * FROM withholding_tax_line WHERE invoice_id = %s',
+        #         (invoice_id,)
+        #     )
+        #     for row in self._cr.dictfetchall():
+        #         if row['amount'] and row['tax_code_id'] and row['tax_amount'] and row['account_id']:
+        #             res.append({
+        #                 'type': 'tax',
+        #                 'name': row['name'],
+        #                 'price_unit': row['amount'],
+        #                 'quantity': 1,
+        #                 'price': -row['amount'] or 0.0,
+        #                 'account_id': row['account_id'],
+        #                 'tax_code_id': False,
+        #                 'tax_amount': False,
+        #                 'account_analytic_id': row['account_analytic_id'],
+        #             })
+        #=======================================================================
+        return res

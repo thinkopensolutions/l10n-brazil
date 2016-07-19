@@ -52,6 +52,8 @@ def validate(cr, uid, ids, context=None):
                         u'a série deve ter uma sequencia interna\n')
 
         # Emitente
+        if not company.logo:
+            strErro += u'Company Logo\n'
         if not company.partner_id.legal_name:
             strErro += u'Emitente - Razão Social\n'
 
@@ -200,12 +202,12 @@ def validate(cr, uid, ids, context=None):
                                 u'Qtde: %s - '
                                 u'Referência/Código do produto\n') % (
                         inv_line.product_id.name, inv_line.quantity)
-                if not inv_line.product_id.name:
+                if not inv_line.fiscal_document_desc:
                     strErro += (u'Produtos e Serviços: %s, '
                                 u'Qtde: %s - '
                                 u'Referência/Código do produto\n') % (
                         inv_line.product_id.default_code,
-                        inv_line.product_id.name,
+                        inv_line.fiscal_document_desc,
                         inv_line.quantity)
 
                 if not inv_line.cfop_id:
