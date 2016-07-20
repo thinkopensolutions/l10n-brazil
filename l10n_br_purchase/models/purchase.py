@@ -99,7 +99,7 @@ class PurchaseOrder(models.Model):
                 ctx).apply_fiscal_mapping(result, **kwargs)
 
     @api.onchange('fiscal_category_id', 'fiscal_position')
-    def onchange_fiscal(self):
+    def onchange_fiscal(self, **kwargs):
 
         result = {'value': {'fiscal_position': False}}
 

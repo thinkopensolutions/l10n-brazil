@@ -7,6 +7,9 @@
 			<field name="model">product.template</field>
 			<field name="inherit_id" ref="l10n_br_account.l10n_br_account_product_template_form_view"/>
 			<field name="arch" type="xml">
+				<field name="fiscal_type" position="after">
+					<field name="service_type_id" attrs="{'required': [('type', '=', 'service'), ('fiscal_type', '=', 'product')], 'invisible': [('type', '!=', 'service'), ('fiscal_type', '=', 'product')]}" domain="[('internal_type', '=', 'normal')]"/>
+				</field>
 				<field name="fiscal_type" position="attributes">
 					<attribute name="invisible">0</attribute>
 					<attribute name="required">1</attribute>

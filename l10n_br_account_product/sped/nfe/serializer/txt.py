@@ -1261,22 +1261,22 @@ def nfe_export(cr, uid, ids, nfe_environment='1',
 
                 # Endereço da transportadora
                 carrier_addr = pool.get('res.partner').address_get(
-                    cr, uid, [inv.carrier_id.partner_id.id], ['default'])
+                    cr, uid, [inv.carrier_id.id], ['default'])
                 carrier_addr_default = pool.get('res.partner').browse(
                     cr, uid, [carrier_addr['default']])[0]
 
-                if inv.carrier_id.partner_id.legal_name:
+                if inv.carrier_id.legal_name:
                     StrRegX03['XNome'] = (normalize(
                         'NFKD',
-                        unicode(inv.carrier_id.partner_id.legal_name or ''))
+                        unicode(inv.carrier_id.legal_name or ''))
                         .encode('ASCII', 'ignore'))
                 else:
                     StrRegX03['XNome'] = (normalize(
                         'NFKD',
-                        unicode(inv.carrier_id.partner_id.name or ''))
+                        unicode(inv.carrier_id.name or ''))
                         .encode('ASCII', 'ignore'))
 
-                StrRegX03['IE'] = inv.carrier_id.partner_id.inscr_est or ''
+                StrRegX03['IE'] = inv.carrier_id.inscr_est or ''
                 StrRegX03['XEnder'] = normalize(
                     'NFKD', unicode(
                         carrier_addr_default.street or '')).encode(
@@ -1289,12 +1289,12 @@ def nfe_export(cr, uid, ids, nfe_environment='1',
                             carrier_addr_default.l10n_br_city_id.name or ''))
                         .encode('ASCII', 'ignore'))
 
-                if inv.carrier_id.partner_id.is_company:
+                if inv.carrier_id.is_company:
                     StrX0 = 'X04|%s|\n' % (punctuation_rm(
-                        inv.carrier_id.partner_id.cnpj_cpf))
+                        inv.carrier_id.cnpj_cpf))
                 else:
                     StrX0 = 'X05|%s|\n' % (punctuation_rm(
-                        inv.carrier_id.partner_id.cnpj_cpf))
+                        inv.carrier_id.cnpj_cpf))
         except AttributeError:
             pass
         StrX03 = 'X03|%s|%s|%s|%s|%s|\n' % (

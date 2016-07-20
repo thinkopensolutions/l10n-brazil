@@ -87,7 +87,9 @@
 									<field name="expedition_location"/>
 								</group>
 								<group name="delivery_info">
-									<field name="carrier_name"/>
+									<field name="incoterm"/>
+									<field name="carrier_id"/>
+									<field name="carrier_name" invisible="1"/>
 									<field name="vehicle_plate"/>
 									<field name="vehicle_state_id"/>
 									<field name="vehicle_l10n_br_city_id"/>
@@ -99,7 +101,8 @@
 								<group name="package_info">
 									<field name="weight"/>
 									<field name="weight_net"/>
-									<field name="number_of_packages"/>
+									<field name="additional_weight"/>
+]									<field name="number_of_packages"/>
 									<field name="kind_of_packages"/>
 									<field name="brand_of_packages"/>
 									<field name="notation_of_packages"/>
@@ -120,6 +123,12 @@
 					<field name="amount_gross"  widget='monetary' options="{'currency_field': 'currency_id'}"/>
 					<field name="amount_discount" widget='monetary' options="{'currency_field': 'currency_id'}"/>
 				</field>
+				<xpath expr="//field[@name='invoice_line']/tree/field[@name='name']" position="after">
+					<field name="fiscal_document_desc" string="Description"/>
+				</xpath>
+				<xpath expr="//field[@name='invoice_line']/tree/field[@name='name']" position="attributes">
+					<attribute name="invisible">1</attribute>
+				</xpath>
 				<xpath expr="//field[@name='invoice_line']/tree/field[@name='price_unit']" position="after">
 					<field name="price_gross" />
 				</xpath>
@@ -169,8 +178,6 @@
 				<field name="comment" position="replace">
 				</field>
 				<field name="date_invoice" position="after">
-					<field name="document_serie_id" domain="[('fiscal_type','=','service'),('fiscal_document_id','=',fiscal_document_id),('company_id','=',company_id)]" attrs="{'invisible': [('issuer', '=', '1')], 'required': [('issuer', '=', '0')]}" />
-					<field name="fiscal_document_id" required="1"/>
 					<field name="date_hour_invoice" string="Data Emissão"/>
 					<field name="date_in_out" string="Data de Entrada/Saida"/>
 					<field name="fiscal_document_electronic" invisible="1"/>
@@ -233,7 +240,9 @@
 							</page>
 							<page string="Transporte">
 								<group name="delivery_info">
-									<field name="carrier_name"/>
+									<field name="incoterm"/>
+									<field name="carrier_id"/>
+									<field name="carrier_name" invisible="1"/>
 									<field name="vehicle_plate"/>
 									<field name="vehicle_state_id"/>
 									<field name="vehicle_l10n_br_city_id"/>
@@ -245,6 +254,7 @@
 								<group name="package_info">
 									<field name="weight"/>
 									<field name="weight_net"/>
+									<field name="additional_weight"/>
 									<field name="number_of_packages"/>
 									<field name="kind_of_packages"/>
 									<field name="brand_of_packages"/>
@@ -330,8 +340,9 @@
 										<field name="company_id" groups="base.group_multi_company" readonly="1"/>
 									</group>
 								</group>
-								<label for="name"/>
-									<field name="name"/>
+								<label for="name" invisible="1"/>
+								<field name="name" invisible="1"/>
+								<field name="fiscal_document_desc" nolabel="1" required="1" widget="text"/>
 							</page>
 							<page position="inside" string="Impostos">
 								<group>

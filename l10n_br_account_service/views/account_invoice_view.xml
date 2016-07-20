@@ -1,7 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <openerp>
 	<data>
-
+		<!-- -->
+		<record model="ir.ui.view" id="view_account_invoice_cancel_form">
+ 			<field name="name">l10n_br_envio_account.invoice.form</field>
+ 			<field name="model">account.invoice</field>
+ 			<field name="inherit_id" ref="account_cancel.invoice_form_cancel_inherit"/>
+ 			<field name="arch" type="xml">
+ 				<button name="invoice_cancel" position="replace">
+ 					<button name="invoice_cancel" attrs="{'invisible':[('state','in',['paid','cancel'])]}" string="Cancel Invoice" groups="account.group_account_invoice"/>
+ 				</button>
+ 			</field>
+ 		</record>
+ 		
+ 		<record model="ir.ui.view" id="view_l10n_br_account_invoice_service_form">
+ 			<field name="name">l10n_br_envio_account.invoice.form</field>
+ 			<field name="model">account.invoice</field>
+ 			<field name="inherit_id" ref="l10n_br_account.view_l10n_br_account_invoice_form"/>
+ 				<field name="arch" type="xml">
+ 					<field name="comment" position="after">
+ 						<label  for="nfse_description"/>
+						<field name="nfse_description" nolabel="1" placeholder="NFSe Description..."/>
+ 					</field>
+				</field>
+		</record> 		
+		<!-- Customer Invoice views -->
+ 		<record model="ir.ui.view" id="view_l10n_br_envio_account_invoice_form">
+ 			<field name="name">l10n_br_envio_account.invoice.form</field>
+ 			<field name="model">account.invoice</field>
+ 			<field name="inherit_id" ref="account.invoice_form"/>
+ 			<field name="arch" type="xml">
+ 				<field name="fiscal_type" position="replace">
+ 					<field name="fiscal_type"/>
+ 				</field>
+ 				<button name="invoice_open" position="replace">
+ 					<button name="invoice_open" attrs="{'invisible':['|',('state','!=','draft'),('fiscal_type','!=','service')]}"
+ 					 string="Validate nfse" class="oe_highlight"/>
+ 					<button name="check_nfse_status" type="object" attrs="{'invisible':['|',('state','!=','nfse_issuing'),('fiscal_type','!=','service')]}"
+ 					 string="Check Status" class="oe_highlight"/>
+ 					<button name="invoice_open" states="nfse_export,proforma2" string="Validate" class="oe_highlight" />
+ 					<button name="invoice_trysend_nfse"
+ 							attrs="{'invisible':[('state','!=','nfse_export')]}"
+ 							confirm="Confirma emissão da NFS-e ?" string="Transmitir" class="oe_highlight"
+ 							groups="base.group_user"/>
+ 					<button name="invoice_resend" states="nfse_exception" string="Habilitar re-envio"
+ 							class="oe_highlight" groups="base.group_user"/>
+ 					
+ 				</button>
+ 			</field>
+ 		</record>
+ 		
 		<record id="action_invoice_tree_service_out" model="ir.actions.act_window">
 			<field name="name">Nota Fiscal de Serviço de Saida</field>
 			<field name="res_model">account.invoice</field>
@@ -25,7 +73,7 @@
 			<field name="view_mode">tree,form,calendar,graph</field>
 			<field eval="False" name="view_id" />
 			<field name="domain">[('type','=','in_invoice'),('fiscal_type','=','service')]</field>
-			<field name="context">{'type':'in_invoice', 'journal_type': 'purchase','fiscal_type': 'service'}</field>
+			<field name="context">{'default_issuer':'1','type':'in_invoice', 'journal_type': 'purchase','fiscal_type': 'service'}</field>
 			<field name="view_id" ref="account.invoice_form" />
 			<field name="search_view_id" ref="account.view_account_invoice_filter"/>
 			<field name="help">With Customer Invoices you can create and manage

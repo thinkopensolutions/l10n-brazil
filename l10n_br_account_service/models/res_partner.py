@@ -91,7 +91,17 @@ class AccountFiscalPosition(models.Model):
                         result[tax.domain].update({'tax': tax})
                     else:
                         result[tax.domain] = {'tax': tax}
-
+        # map tax codes
+        result.update(self._map_tax_codes(map_taxes))
+        return result
+    
+    def _map_tax_codes(self, map_tax):
+        result = {}
+        for map in map_tax:
+            result[map.tax_dest_id.domain] = {
+                'tax': map.tax_dest_id,
+                'tax_code': map.tax_code_dest_id,
+            }
         return result
 
     @api.v8

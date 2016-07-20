@@ -15,6 +15,9 @@
 									<field name="fiscal_type"/>
 									<field name="fiscal_rule_parent_id"/>
 								</group>
+								<group string="Observação Fiscal">
+									<field name="fiscal_comment" nolabel="1"/>
+								</group>
 								<group string="CNAE">
 									<field name="cnae_main_id"/>
 								</group>

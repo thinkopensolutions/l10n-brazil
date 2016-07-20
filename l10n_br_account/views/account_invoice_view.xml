@@ -66,6 +66,16 @@
 					<field name="vendor_serie" attrs="{'invisible': [('issuer', '=', '0')], 'required': [('issuer', '=', '1')]}" />
 					<field name="issuer" attrs="{'invisible': [('type', '=', 'out_invoice')]}" />
 				</field>
+				<label for="comment" position="replace"/>
+				<field name="comment" position="replace"/>
+				<xpath expr="//field[@name='payment_term']" position="after">
+					<group colspan="4">
+						<label  for="fiscal_comment"/>
+						<field name="fiscal_comment" nolabel="1" placeholder="Observações Fiscais"/>
+						<label  for="comment"/>
+						<field name="comment" nolabel="1" placeholder="Additional notes..."/>
+					</group>
+				</xpath>
 				<xpath expr="//tree[@string='Invoice Lines']" position="attributes">
 					<attribute name="editable"></attribute>
 				</xpath>
@@ -75,6 +85,28 @@
 				<xpath expr="//field[@name='invoice_line']/tree/field[@name='invoice_line_tax_id']" position="attributes">
 					<attribute name="invisible">1</attribute>
 				</xpath>
+				<field name="amount_tax" position="after">
+              		<field name="amount_tax_withholding" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+              	</field>
+              	<field name="amount_total" position="after">
+              		<field name="amount_total_liquid"  widget="monetary" options="{'currency_field': 'currency_id'}"/>
+              	</field>
+              	<field name="tax_line" position="before">
+              		<separator string="Taxes"/>
+              	</field>
+                <field name="tax_line" position="after">
+                		<separator string="Withholdings"/>
+             		<field name="withholding_tax_lines" readonly="1">
+             			<tree editable="bottom" string="Withholding Taxes" delete="false">
+                                 <field name="name"/>
+                                 <field name="account_id" groups="account.group_account_user"/>
+                                 <field name="base" readonly="1"/>
+                                 <field name="amount" />
+                                 <field invisible="True" name="base_amount"/>
+                                 <field invisible="True" name="tax_amount"/>
+                             </tree>
+             		</field>
+            	   </field>
 			</field>
 		</record>
 
@@ -100,6 +132,7 @@
 
 		<record id="account.action_invoice_tree2" model="ir.actions.act_window">
 			<field name="domain">[('type', '=', 'in_invoice'), ('fiscal_type', '=', 'service')]</field>
+			<field name="context">{'default_issuer':'1','default_type': 'in_invoice', 'type': 'in_invoice', 'journal_type': 'purchase'}</field>
 		</record>
 
 		<record id="account.action_invoice_tree3" model="ir.actions.act_window">
@@ -145,15 +178,18 @@
 				<field name="partner_id" position="attributes">
                     <attribute name="context_br">{'fiscal_category_id': fiscal_category_id}</attribute>
 				</field>
-				<field position="replace" name="internal_number">
-				</field>
+				<field position="replace" name="internal_number"/>
 				<field position="attributes" name="company_id">
 					<attribute name="on_changes">onchange_company_id(company_id, partner_id, type, invoice_line, currency_id, fiscal_category_id)</attribute>
 				</field>
 				<field name="date_invoice" position="before">
-					<field name="internal_number" attrs="{'readonly': [('issuer', '=', '0')], 'required': [('issuer', '=', '1')]}" />
-					<field name="vendor_serie" attrs="{'invisible': [('issuer', '=', '0')], 'required': [('issuer', '=', '1')]}" />
-					<field name="issuer" attrs="{'invisible': [('type', '=', 'out_invoice')]}" />
+					<field name="document_serie_id"
+						   domain="[('fiscal_type','=','service'),('fiscal_document_id','=',fiscal_document_id),('company_id','=',company_id)]"
+						   attrs="{'invisible': ['|', ('issuer', '=', '1'),('fiscal_type', '=', 'service')], 'required': ['|',('fiscal_type', '=', 'product'),('issuer', '=', '0')]}" />
+					<field name="fiscal_document_id"
+					attrs="{'invisible': ['|', ('issuer', '=', '1'),('fiscal_type', '=', 'service')], 'required': ['|',('fiscal_type', '=', 'product'),('issuer', '=', '0')]}"/>
+					<field name="internal_number" attrs="{'required': ['|',('fiscal_type', '=', 'service'),('issuer', '=', '1')]}"/>
+					<field name="issuer" attrs="{'invisible': ['|',('fiscal_type','=','service'),('type', '=', 'out_invoice')]}" />
 				</field>
 				<field position="replace" name="fiscal_position">
 					<field name="fiscal_category_id" on_change="onchange_fiscal_category_id(partner_id, partner_id, company_id, fiscal_category_id)" domain="[('journal_type','in',('purchase',)),('fiscal_type','=','service')]" required="1" />

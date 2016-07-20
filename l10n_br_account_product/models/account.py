@@ -38,7 +38,7 @@ class AccountTaxTemplate(models.Model):
         [('0', 'Margem Valor Agregado (%)'), ('1', 'Pauta (valor)'),
          ('2', 'Preço Tabelado Máximo (valor)'),
          ('3', 'Valor da Operação')],
-        'Tipo Base ICMS', required=True, default='0')
+        'Tipo Base ICMS', required=False, default='0')
     icms_st_base_type = fields.Selection(
         [('0', 'Preço tabelado ou máximo  sugerido'),
          ('1', 'Lista Negativa (valor)'),
@@ -55,7 +55,7 @@ class AccountTax(models.Model):
         [('0', 'Margem Valor Agregado (%)'), ('1', 'Pauta (valor)'),
          ('2', 'Preço Tabelado Máximo (valor)'),
          ('3', 'Valor da Operação')],
-        'Tipo Base ICMS', required=True, default='0')
+        'Tipo Base ICMS', required=False, default='0')
     icms_st_base_type = fields.Selection(
         [('0', 'Preço tabelado ou máximo  sugerido'),
          ('1', 'Lista Negativa (valor)'),
@@ -230,12 +230,17 @@ class AccountTax(models.Model):
                 calculed_taxes += result_icmsst['taxes']
 
         # Estimate Taxes
-        if fiscal_position and fiscal_position.asset_operation:
+        if fiscal_position and fiscal_position.asset_operation and product:
+            if isinstance(product, int):
+                product = self.pool.get('product.product').browse(cr, uid, product)
             obj_tax_estimate = self.pool.get('l10n_br_tax.estimate')
             date = datetime.now().strftime('%Y-%m-%d')
+            fiscal_classification = False
+            if product.fiscal_classification_id:
+                fiscal_classification = product.fiscal_classification_id.id
             tax_estimate_ids = obj_tax_estimate.search(
                 cr, uid, [('fiscal_classification_id', '=',
-                           product.fiscal_classification_id.id),
+                           fiscal_classification),
                           '|', ('date_start', '=', False),
                           ('date_start', '<=', date),
                           '|', ('date_end', '=', False),

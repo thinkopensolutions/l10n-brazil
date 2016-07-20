@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+    	
+    	<record id="act_nfse_issuing" model="workflow.activity">
+            <field name="wkf_id" ref="account.wkf"/>
+            <field name="name">router_nfse</field>
+            <field name="action">nfse_check()
+action_date_assign()
+action_number()
+action_move_create()
+nfse_issue()
+            	</field>
+            <field name="kind">function</field>
+        </record>
+        
+        <record id="act_nfse_denied" model="workflow.activity">
+            <field name="wkf_id" ref="account.wkf"/>
+            <field name="name">nfse_denied</field>
+             <field name="action">write({'state':'nfse_denied'})</field>
+             <field name="kind">function</field>
+        </record>
+        
+         <record id="act_nfse_exception" model="workflow.activity">
+            <field name="wkf_id" ref="account.wkf"/>
+            <field name="name">nfse_exception</field>
+             <field name="action">write({'state':'nfse_exception'})</field>
+             <field name="kind">function</field>
+        </record>
+        
+        <record id="act_nfse_cancel" model="workflow.activity">
+            <field name="wkf_id" ref="account.wkf"/>
+            <field name="name">Waiting Cancellation</field>
+             <field name="action">nfse_cancel()</field>
+             <field name="kind">function</field>
+        </record>
+        
+    	
+        <record id="tras_draft_issuing" model="workflow.transition">
+            <field name="act_from" ref="account.act_draft"/>
+            <field name="act_to" ref="act_nfse_issuing"/>
+            <field name="condition">fiscal_type == 'service' and type == 'out_invoice' and fiscal_document_electronic == True</field>
+            <field name="signal">invoice_issue_nfse</field>
+        </record>
+        
+        <record id="tras_issuing_open" model="workflow.transition">
+             <field name="act_from" ref="act_nfse_issuing"/>
+              <field name="act_to" ref="account.act_open"/>
+              <field name="condition">True</field>
+              <field name="signal">invoice_open_nfse</field>
+        </record>
+        
+        <record id="tras_draft_open" model="workflow.transition">
+             <field name="act_from" ref="account.act_draft"/>
+              <field name="act_to" ref="account.act_open"/>
+              <field name="condition">fiscal_type != 'service' or fiscal_document_electronic == False or type == 'in_invoice' </field>
+              <field name="signal">invoice_issue_nfse</field>
+        </record>
+        
+        <record id="tras_issuing_denied" model="workflow.transition">
+             <field name="act_from" ref="act_nfse_issuing"/>
+              <field name="act_to" ref="act_nfse_denied"/>
+              <field name="condition">True</field>
+              <field name="signal">invoice_issuing_nfse_defined</field>
+        </record>
+         <record id="tras_issuing_exception" model="workflow.transition">
+             <field name="act_from" ref="act_nfse_issuing"/>
+              <field name="act_to" ref="act_nfse_exception"/>
+              <field name="condition">True</field>
+              <field name="signal">invoice_issuing_nfse_exception</field>
+        </record>
+        <record id="tras_exception_issuing" model="workflow.transition">
+             <field name="act_from" ref="act_nfse_exception"/>
+              <field name="act_to" ref="act_nfse_issuing"/>
+              <field name="condition">True</field>
+              <field name="signal">invoice_resend</field>
+        </record>
+        
+        <record id="tras_denied_issuing" model="workflow.transition">
+             <field name="act_from" ref="act_nfse_denied"/>
+              <field name="act_to" ref="act_nfse_issuing"/>
+              <field name="condition">True</field>
+              <field name="signal">invoice_resend</field>
+        </record>
+        
+        <record id="account.t12" model="workflow.transition">
+            <field name="act_from" ref="account.act_open"/>
+            <field name="act_to" ref="account.act_cancel"/>
+            <field name="condition">type == 'in_invoice' or fiscal_document_electronic == False or state not in ['open','nfse_issuing']</field>
+            <field name="signal">invoice_cancel</field>
+        </record>
+        <record id="nfse_issuing_cancel" model="workflow.transition">
+            <field name="act_from" ref="act_nfse_issuing"/>
+            <field name="act_to" ref="act_nfse_cancel"/>
+            <field name="condition">type == 'out_invoice' and fiscal_document_electronic == True and state in ['open','nfse_issuing']</field>
+            <field name="signal">invoice_cancel</field>
+        </record>
+        <record id="nfse_open_waiting" model="workflow.transition">
+            <field name="act_from" ref="account.act_open"/>
+            <field name="act_to" ref="act_nfse_cancel"/>
+            <field name="condition">type == 'out_invoice' and fiscal_document_electronic == True and state in ['open','nfse_issuing']</field>
+            <field name="signal">invoice_cancel</field>
+        </record>
+         <record id="nfse_waiting_2_cancel" model="workflow.transition">
+            <field name="act_from" ref="act_nfse_cancel"/>
+            <field name="act_to" ref="account.act_cancel"/>
+            <field name="condition">type == 'out_invoice' and fiscal_document_electronic == True and state not in ['open','nfse_issuing']</field>
+            <field name="signal">invoice_cancel</field>
+        </record>
+    </data>
+</openerp>

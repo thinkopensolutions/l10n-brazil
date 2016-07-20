@@ -224,11 +224,14 @@ class AccountProductFiscalClassification(models.Model):
         compute='_compute_taxes', store=True)
 
     tax_estimate_ids = fields.One2many(
+<<<<<<< HEAD
         comodel_name='l10n_br_tax.estimate',
         inverse_name='fiscal_classification_id',
         string=u'Impostos Estimados')
+=======
         'l10n_br_tax.estimate', 'fiscal_classification_id',
         'Impostos Estimados')
+>>>>>>> c33e05707e8cd43ae943f3b2307a601587ffe724
 
     cest = fields.Char(
         string='CEST',
