@@ -133,9 +133,12 @@ class AccountInvoice(models.Model):
         string=u'Inscrição Estadual',
         related='partner_id.inscr_est',
     )
+    amount_gross = fields.Float(string='Vlr. Bruto',store=True, digits=dp.get_precision('Account'), compute='get_amount_tax_withholding', readonly=True)
     amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
     amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
     withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
+    amount_discount = fields.Float(string='Desconto', store=True, digits=dp.get_precision('Account'),
+                                   compute='_compute_amount')
 
     _order = 'internal_number desc'
     
@@ -160,13 +163,29 @@ class AccountInvoice(models.Model):
     @api.depends('invoice_line.price_subtotal', 'withholding_tax_lines.amount','withholding_tax_lines','amount_tax')
     def get_amount_tax_withholding(self):
         total_withholding = 0.0
-        for line in self.withholding_tax_lines:
-            total_withholding += line.amount
-        self.amount_tax_withholding = total_withholding 
-        self.amount_total_liquid =  self.amount_total - self.amount_tax_withholding
-    
-    
-    #this method will reset taxes lines and withholding lines
+        self.amount_discount = sum(
+            line.discount_value for line in self.invoice_line)
+        self.amount_total_taxes = sum(
+            line.total_taxes for line in self.invoice_line)
+        self.amount_gross = sum(line.price_gross for line in self.invoice_line)
+        self.amount_tax_discount = 0.0
+        self.amount_untaxed = self.amount_gross - self.amount_discount
+        self.amount_tax = sum(tax.amount for tax in self.tax_line)
+        amount_tax_with_tax_discount = sum(tax.amount for tax in self.tax_line if tax.tax_code_id.tax_discount) \
+                                       - sum(
+            tax.amount for tax in self.withholding_tax_lines if tax.tax_code_id.tax_discount)
+        amount_tax_without_tax_discount = sum(tax.amount for tax in self.tax_line if not tax.tax_code_id.tax_discount) \
+                                          - sum(
+            tax.amount for tax in self.withholding_tax_lines if not tax.tax_code_id.tax_discount)
+
+        self.amount_total = self.amount_untaxed + \
+                            amount_tax_without_tax_discount - self.amount_tax_withholding
+        self.amount_total_liquid = self.amount_untaxed - amount_tax_with_tax_discount - self.amount_tax_withholding
+
+
+
+
+            #this method will reset taxes lines and withholding lines
     #we do not call super because super also will create tax lines
     @api.multi
     def button_reset_taxes(self):
@@ -601,6 +620,7 @@ class AccountInvoiceLine(models.Model):
                  'invoice_id.currency_id')
     def _compute_price(self):
         price = self.price_unit * (1 - (self.discount or 0.0) / 100.0)
+        self.price_gross = 0.0
         taxes = self.invoice_line_tax_id.compute_all(
             price, self.quantity, product=self.product_id,
             partner=self.invoice_id.partner_id,
@@ -611,10 +631,17 @@ class AccountInvoiceLine(models.Model):
         self.price_subtotal = taxes['total'] - (taxes['total_included'] - taxes['total']) 
         self.price_total = taxes['total']
         if self.invoice_id:
+            self.price_gross = self.invoice_id.currency_id.round(
+                self.price_unit * self.quantity)
+            self.discount_value = self.invoice_id.currency_id.round(
+                self.price_gross - taxes['total'])
             self.price_subtotal = self.invoice_id.currency_id.round(
-                self.price_subtotal)
+                taxes['total'] - taxes['total_tax_discount'])
             self.price_total = self.invoice_id.currency_id.round(
-                self.price_total)
+                taxes['total'])
+
+            self.price_subtotal = taxes['total'] - (taxes['total_included'] - taxes['total'])
+            self.price_total = taxes['total']
 
     invoice_line_tax_id = fields.Many2many(
         'account.tax', 'account_invoice_line_tax', 'invoice_line_id',
@@ -627,6 +654,15 @@ class AccountInvoiceLine(models.Model):
     price_total = fields.Float(
         string='Amount', store=True, digits=dp.get_precision('Account'),
         readonly=True, compute='_compute_price')
+    price_gross = fields.Float(
+        string='Vlr. Bruto', store=True, compute='_compute_price',
+        digits=dp.get_precision('Account'))
+    total_taxes = fields.Float(
+        string='Total de Tributos', requeried=True, default=0.00,
+        digits=dp.get_precision('Account'))
+    discount_value = fields.Float(
+        string='Vlr. desconto', store=True, compute='_compute_price',
+        digits=dp.get_precision('Account'))
 
     def fields_view_get(self, cr, uid, view_id=None, view_type=False,
                         context=None, toolbar=False, submenu=False):

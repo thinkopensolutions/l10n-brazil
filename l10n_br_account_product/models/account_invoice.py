@@ -638,9 +638,6 @@ class AccountInvoiceLine(models.Model):
     price_total = fields.Float(
         string='Total', store=True, compute='_compute_price',
         digits=dp.get_precision('Account'))
-    total_taxes = fields.Float(
-        string='Total de Tributos', requeried=True, default=0.00,
-        digits=dp.get_precision('Account'))
     icms_manual = fields.Boolean('ICMS Manual?', default=False)
     icms_origin = fields.Selection(PRODUCT_ORIGIN, 'Origem', default='0')
     icms_base_type = fields.Selection(
