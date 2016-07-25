@@ -74,11 +74,17 @@ class AccountInvoice(models.Model):
     @api.one
     @api.depends('invoice_line.price_subtotal', 'tax_line.amount')
     def _compute_amount(self):
-        self.amount_tax = sum(line.amount for line in self.tax_line)
         self.amount_gross = sum(line.price_gross for line in self.invoice_line)
         self.amount_untaxed = self.amount_gross - self.amount_discount
-        self.amount_total = self.amount_untaxed + self.amount_tax + self.amount_tax_withholding
-        self.amount_total_liquid = self.amount_untaxed - self.amount_tax_withholding
+        self.amount_tax = sum(tax.amount
+                              for tax in self.tax_line)
+        amount_tax_with_tax_discount= sum(tax.amount for tax in self.tax_line if tax.tax_code_id.tax_discount) \
+                       - sum(tax.amount for tax in self.withholding_tax_lines if tax.tax_code_id.tax_discount)
+        amount_tax_without_tax_discount = sum(tax.amount for tax in self.tax_line if not tax.tax_code_id.tax_discount) \
+                       - sum(tax.amount for tax in self.withholding_tax_lines if not tax.tax_code_id.tax_discount)
+        self.amount_total = self.amount_untaxed + \
+            amount_tax_without_tax_discount - self.amount_tax_withholding
+        self.amount_total_liquid = self.amount_untaxed - amount_tax_with_tax_discount  - self.amount_tax_withholding
 
     issuer = fields.Selection(
         [('0', u'Emissão própria'), ('1', 'Terceiros')], 'Emitente',
@@ -169,7 +175,6 @@ class AccountInvoice(models.Model):
         self.amount_total_taxes = sum(
             line.total_taxes for line in self.invoice_line)
         self.amount_gross = sum(line.price_gross for line in self.invoice_line)
-        self.amount_tax_discount = 0.0
         self.amount_untaxed = self.amount_gross - self.amount_discount
         self.amount_tax = sum(tax.amount for tax in self.tax_line)
         amount_tax_with_tax_discount = sum(tax.amount for tax in self.tax_line if tax.tax_code_id.tax_discount) \

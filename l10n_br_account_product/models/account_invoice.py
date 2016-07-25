@@ -67,7 +67,6 @@ class AccountInvoice(models.Model):
         self.amount_total_taxes = sum(
             line.total_taxes for line in self.invoice_line)
         self.amount_gross = sum(line.price_gross for line in self.invoice_line)
-        self.amount_tax_discount = 0.0
         self.amount_untaxed = self.amount_gross - self.amount_discount
         self.amount_tax = sum(tax.amount
                               for tax in self.tax_line)
