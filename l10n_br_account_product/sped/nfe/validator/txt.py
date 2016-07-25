@@ -205,10 +205,11 @@ def validate(cr, uid, ids, context=None):
                 if not inv_line.fiscal_document_desc:
                     strErro += (u'Produtos e Serviços: %s, '
                                 u'Qtde: %s - '
-                                u'Referência/Código do produto\n') % (
+                                u'Fiscal description/Código do produto : %s\n') % (
                         inv_line.product_id.default_code,
+                        inv_line.quantity,
                         inv_line.fiscal_document_desc,
-                        inv_line.quantity)
+                        )
 
                 if not inv_line.cfop_id:
                     strErro += (u'Produtos e Serviços: %s - '
