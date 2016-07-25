@@ -67,7 +67,6 @@ class AccountInvoice(models.Model):
         self.amount_total_taxes = sum(
             line.total_taxes for line in self.invoice_line)
         self.amount_gross = sum(line.price_gross for line in self.invoice_line)
-        self.amount_tax_discount = 0.0
         self.amount_untaxed = self.amount_gross - self.amount_discount
         self.amount_tax = sum(tax.amount
                               for tax in self.tax_line)
@@ -637,9 +636,6 @@ class AccountInvoiceLine(models.Model):
         digits=dp.get_precision('Account'))
     price_total = fields.Float(
         string='Total', store=True, compute='_compute_price',
-        digits=dp.get_precision('Account'))
-    total_taxes = fields.Float(
-        string='Total de Tributos', requeried=True, default=0.00,
         digits=dp.get_precision('Account'))
     icms_manual = fields.Boolean('ICMS Manual?', default=False)
     icms_origin = fields.Selection(PRODUCT_ORIGIN, 'Origem', default='0')
