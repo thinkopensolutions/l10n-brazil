@@ -74,10 +74,11 @@ class AccountInvoice(models.Model):
     @api.one
     @api.depends('invoice_line.price_subtotal', 'tax_line.amount')
     def _compute_amount(self):
-        self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line)
         self.amount_tax = sum(line.amount for line in self.tax_line)
+        self.amount_gross = sum(line.price_gross for line in self.invoice_line)
+        self.amount_untaxed = self.amount_gross - self.amount_discount
         self.amount_total = self.amount_untaxed + self.amount_tax + self.amount_tax_withholding
-        self.amount_total_liquid = self.amount_total - self.amount_tax_withholding
+        self.amount_total_liquid = self.amount_untaxed - self.amount_tax_withholding
 
     issuer = fields.Selection(
         [('0', u'Emissão própria'), ('1', 'Terceiros')], 'Emitente',
@@ -135,7 +136,7 @@ class AccountInvoice(models.Model):
     )
     amount_gross = fields.Float(string='Vlr. Bruto',store=True, digits=dp.get_precision('Account'), compute='get_amount_tax_withholding', readonly=True)
     amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
-    amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
+    amount_total_liquid = fields.Float(compute='_compute_amount', string='Liquid', digits=dp.get_precision('Account'), store=True)
     withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
     amount_discount = fields.Float(string='Desconto', store=True, digits=dp.get_precision('Account'),
                                    compute='_compute_amount')
@@ -177,10 +178,6 @@ class AccountInvoice(models.Model):
         amount_tax_without_tax_discount = sum(tax.amount for tax in self.tax_line if not tax.tax_code_id.tax_discount) \
                                           - sum(
             tax.amount for tax in self.withholding_tax_lines if not tax.tax_code_id.tax_discount)
-
-        self.amount_total = self.amount_untaxed + \
-                            amount_tax_without_tax_discount - self.amount_tax_withholding
-        self.amount_total_liquid = self.amount_untaxed - amount_tax_with_tax_discount - self.amount_tax_withholding
 
 
 
