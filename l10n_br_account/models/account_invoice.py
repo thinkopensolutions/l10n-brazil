@@ -170,19 +170,9 @@ class AccountInvoice(models.Model):
     @api.depends('invoice_line.price_subtotal', 'withholding_tax_lines.amount','withholding_tax_lines','amount_tax')
     def get_amount_tax_withholding(self):
         total_withholding = 0.0
-        self.amount_discount = sum(
-            line.discount_value for line in self.invoice_line)
-        self.amount_total_taxes = sum(
-            line.total_taxes for line in self.invoice_line)
-        self.amount_gross = sum(line.price_gross for line in self.invoice_line)
-        self.amount_untaxed = self.amount_gross - self.amount_discount
-        self.amount_tax = sum(tax.amount for tax in self.tax_line)
-        amount_tax_with_tax_discount = sum(tax.amount for tax in self.tax_line if tax.tax_code_id.tax_discount) \
-                                       - sum(
-            tax.amount for tax in self.withholding_tax_lines if tax.tax_code_id.tax_discount)
-        amount_tax_without_tax_discount = sum(tax.amount for tax in self.tax_line if not tax.tax_code_id.tax_discount) \
-                                          - sum(
-            tax.amount for tax in self.withholding_tax_lines if not tax.tax_code_id.tax_discount)
+        for line in self.withholding_tax_lines:
+            total_withholding += line.amount
+        self.amount_tax_withholding = total_withholding
 
 
 
