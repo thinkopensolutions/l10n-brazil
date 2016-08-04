@@ -430,8 +430,13 @@ class AccountInvoice(models.Model):
             
             name = inv.supplier_invoice_number or inv.name or '/'
             totlines = []
+            # in supplier invoice 1st entry should be posted in credit side
             if inv.payment_term:
-                totlines = inv.with_context(ctx).payment_term.compute(inv.amount_total, date_invoice)[0]
+                if inv.type == 'out_invoice':
+                    inv_total = inv.amount_total
+                else:
+                    inv_total = inv.amount_total * -1
+                totlines = inv.with_context(ctx).payment_term.compute(inv_total, date_invoice)[0]
             if totlines:
                 res_amount_currency = total_currency
                 ctx['date'] = date_invoice
