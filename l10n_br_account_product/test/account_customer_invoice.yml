@@ -242,6 +242,7 @@
         quantity: 5.0
         price_unit: 110.00
         default_code: HDD-SH2
+        fiscal_document_desc: "Test fiscal document Description"
 -
   I check invoice totals of many manufectured goods
 -
