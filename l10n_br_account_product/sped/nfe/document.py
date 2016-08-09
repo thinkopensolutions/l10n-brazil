@@ -296,7 +296,6 @@ class NFe200(FiscalDocument):
 
         # Se o ambiente for de teste deve ser
         # escrito na razão do destinatário
-        #self.nfe.infNFe.dest.indIEDest.valor = invoice.partner_id.partner_fiscal_type_id.inscr_est_indicator or '9'
         if nfe_environment == '2':
             self.nfe.infNFe.dest.xNome.valor = (
                 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL')
@@ -318,7 +317,7 @@ class NFe200(FiscalDocument):
                         invoice.partner_id.cnpj_cpf)
 
         self.nfe.infNFe.dest.indIEDest.valor = \
-            invoice.partner_id.partner_fiscal_type_id.ind_ie_dest
+            invoice.partner_id.partner_fiscal_type_id.ind_ie_dest or '9'
 
         self.nfe.infNFe.dest.enderDest.xLgr.valor = (
             invoice.partner_id.street or '')
