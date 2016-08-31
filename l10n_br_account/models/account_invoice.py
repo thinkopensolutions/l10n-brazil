@@ -74,10 +74,17 @@ class AccountInvoice(models.Model):
     @api.one
     @api.depends('invoice_line.price_subtotal', 'tax_line.amount')
     def _compute_amount(self):
-        self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line)
-        self.amount_tax = sum(line.amount for line in self.tax_line)
-        self.amount_total = self.amount_untaxed + self.amount_tax + self.amount_tax_withholding
-        self.amount_total_liquid = self.amount_total - self.amount_tax_withholding
+        self.amount_gross = sum(line.price_gross for line in self.invoice_line)
+        self.amount_untaxed = self.amount_gross - self.amount_discount
+        self.amount_tax = sum(tax.amount
+                              for tax in self.tax_line)
+        amount_tax_with_tax_discount= sum(tax.amount for tax in self.tax_line if tax.tax_code_id.tax_discount) \
+                       - sum(tax.amount for tax in self.withholding_tax_lines if tax.tax_code_id.tax_discount)
+        amount_tax_without_tax_discount = sum(tax.amount for tax in self.tax_line if not tax.tax_code_id.tax_discount) \
+                       - sum(tax.amount for tax in self.withholding_tax_lines if not tax.tax_code_id.tax_discount)
+        self.amount_total = self.amount_untaxed + \
+            amount_tax_without_tax_discount - self.amount_tax_withholding
+        self.amount_total_liquid = self.amount_untaxed - amount_tax_with_tax_discount  - self.amount_tax_withholding
 
     issuer = fields.Selection(
         [('0', u'Emissão própria'), ('1', 'Terceiros')], 'Emitente',
@@ -133,9 +140,12 @@ class AccountInvoice(models.Model):
         string=u'Inscrição Estadual',
         related='partner_id.inscr_est',
     )
+    amount_gross = fields.Float(string='Vlr. Bruto',store=True, digits=dp.get_precision('Account'), compute='get_amount_tax_withholding', readonly=True)
     amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
-    amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
+    amount_total_liquid = fields.Float(compute='_compute_amount', string='Liquid', digits=dp.get_precision('Account'), store=True)
     withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
+    amount_discount = fields.Float(string='Desconto', store=True, digits=dp.get_precision('Account'),
+                                   compute='_compute_amount')
 
     _order = 'internal_number desc'
     
@@ -162,11 +172,12 @@ class AccountInvoice(models.Model):
         total_withholding = 0.0
         for line in self.withholding_tax_lines:
             total_withholding += line.amount
-        self.amount_tax_withholding = total_withholding 
-        self.amount_total_liquid =  self.amount_total - self.amount_tax_withholding
-    
-    
-    #this method will reset taxes lines and withholding lines
+        self.amount_tax_withholding = total_withholding
+
+
+
+
+            #this method will reset taxes lines and withholding lines
     #we do not call super because super also will create tax lines
     @api.multi
     def button_reset_taxes(self):
@@ -358,155 +369,7 @@ class AccountInvoice(models.Model):
             total =  total * -1
         return total, total_currency, invoice_move_lines
     
-    
-    #copied whole method because we want to pass invoice total to compute move lines with payment term
-    #compute_invoice_totals has no invoice info
-    # reference has False value
-    @api.multi
-    def action_move_create(self):
-        """ Creates invoice related analytics and financial move lines """
-        account_invoice_tax = self.env['account.invoice.tax']
-        account_move = self.env['account.move']
 
-        for inv in self:
-            if not inv.journal_id.sequence_id:
-                raise except_orm(_('Error!'), _('Please define sequence on the journal related to this invoice.'))
-            if not inv.invoice_line:
-                raise except_orm(_('No Invoice Lines!'), _('Please create some invoice lines.'))
-            if inv.move_id:
-                continue
-
-            ctx = dict(self._context, lang=inv.partner_id.lang)
-
-            if not inv.date_invoice:
-                inv.with_context(ctx).write({'date_invoice': fields.Date.context_today(self)})
-            date_invoice = inv.date_invoice
-
-            company_currency = inv.company_id.currency_id
-            # create the analytical lines, one move line per invoice line
-            iml = inv._get_analytic_lines()
-            # check if taxes are all computed
-            compute_taxes = account_invoice_tax.compute(inv.with_context(lang=inv.partner_id.lang))
-            inv.check_tax_lines(compute_taxes)
-
-            # I disabled the check_total feature
-            if self.env.user.has_group('account.group_supplier_inv_check_total'):
-                if inv.type in ('in_invoice', 'in_refund') and abs(inv.check_total - inv.amount_total) >= (inv.currency_id.rounding / 2.0):
-                    raise except_orm(_('Bad Total!'), _('Please verify the price of the invoice!\nThe encoded total does not match the computed total.'))
-
-            if inv.payment_term:
-                total_fixed = total_percent = 0
-                for line in inv.payment_term.line_ids:
-                    if line.value == 'fixed':
-                        total_fixed += line.value_amount
-                    if line.value == 'procent':
-                        total_percent += line.value_amount
-                total_fixed = (total_fixed * 100) / (inv.amount_total or 1.0)
-                if (total_fixed + total_percent) > 100:
-                    raise except_orm(_('Error!'), _("Cannot create the invoice.\nThe related payment term is probably misconfigured as it gives a computed amount greater than the total invoiced amount. In order to avoid rounding issues, the latest line of your payment term must be of type 'balance'."))
-
-            # one move line per tax line
-            iml += account_invoice_tax.move_line_get(inv.id)
-
-            if inv.type in ('in_invoice', 'in_refund'):
-                ref = inv.reference
-            else:
-                ref = inv.number
-
-            diff_currency = inv.currency_id != company_currency
-            # create one move line for the total and possibly adjust the other lines amount
-            total, total_currency, iml = inv.with_context(ctx).compute_invoice_totals(company_currency, ref, iml)
-            
-            name = inv.supplier_invoice_number or inv.name or '/'
-            totlines = []
-            if inv.payment_term:
-                totlines = inv.with_context(ctx).payment_term.compute(inv.amount_total, date_invoice)[0]
-            if totlines:
-                res_amount_currency = total_currency
-                ctx['date'] = date_invoice
-                for i, t in enumerate(totlines):
-                    if inv.currency_id != company_currency:
-                        amount_currency = company_currency.with_context(ctx).compute(t[1], inv.currency_id)
-                    else:
-                        amount_currency = False
-
-                    # last line: add the diff
-                    res_amount_currency -= amount_currency or 0
-                    if i + 1 == len(totlines):
-                        amount_currency += res_amount_currency
-
-                    iml.append({
-                        'type': 'dest',
-                        'name': name,
-                        'price': t[1],
-                        'account_id': inv.account_id.id,
-                        'date_maturity': t[0],
-                        'amount_currency': diff_currency and amount_currency,
-                        'currency_id': diff_currency and inv.currency_id.id,
-                        'ref': ref,
-                    })
-            else:
-                iml.append({
-                    'type': 'dest',
-                    'name': name,
-                    'price': total,
-                    'account_id': inv.account_id.id,
-                    'date_maturity': inv.date_due,
-                    'amount_currency': diff_currency and total_currency,
-                    'currency_id': diff_currency and inv.currency_id.id,
-                    'ref': ref
-                })
-
-            date = date_invoice
-
-            part = self.env['res.partner']._find_accounting_partner(inv.partner_id)
-
-            line = [(0, 0, self.line_get_convert(l, part.id, date)) for l in iml]
-            line = inv.group_lines(iml, line)
-
-            journal = inv.journal_id.with_context(ctx)
-            if journal.centralisation:
-                raise except_orm(_('User Error!'),
-                        _('You cannot create an invoice on a centralized journal. Uncheck the centralized counterpart box in the related journal from the configuration menu.'))
-
-            line = inv.finalize_invoice_move_lines(line)
-
-            move_vals = {
-                'ref': inv.reference or inv.supplier_invoice_number or inv.name,
-                'line_id': line,
-                'journal_id': journal.id,
-                'date': inv.date_invoice,
-                'narration': inv.comment,
-                'company_id': inv.company_id.id,
-            }
-            ctx['company_id'] = inv.company_id.id
-            period = inv.period_id
-            if not period:
-                period = period.with_context(ctx).find(date_invoice)[:1]
-            if period:
-                move_vals['period_id'] = period.id
-                for i in line:
-                    i[2]['period_id'] = period.id
-
-            ctx['invoice'] = inv
-            ctx_nolang = ctx.copy()
-            ctx_nolang.pop('lang', None)
-            move = account_move.with_context(ctx_nolang).create(move_vals)
-
-            # make the invoice point to that move
-            vals = {
-                'move_id': move.id,
-                'period_id': period.id,
-                'move_name': move.name,
-            }
-            inv.with_context(ctx).write(vals)
-            # Pass invoice in context in method post: used if you want to get the same
-            # account move reference when creating the same invoice after a cancelled one:
-            move.post()
-        self._log_event()
-        return True
-    
-    
     # TODO Talvez este metodo substitui o metodo action_move_create
     @api.multi
     def finalize_invoice_move_lines(self, move_lines):
@@ -601,6 +464,7 @@ class AccountInvoiceLine(models.Model):
                  'invoice_id.currency_id')
     def _compute_price(self):
         price = self.price_unit * (1 - (self.discount or 0.0) / 100.0)
+        self.price_gross = 0.0
         taxes = self.invoice_line_tax_id.compute_all(
             price, self.quantity, product=self.product_id,
             partner=self.invoice_id.partner_id,
@@ -611,10 +475,17 @@ class AccountInvoiceLine(models.Model):
         self.price_subtotal = taxes['total'] - (taxes['total_included'] - taxes['total']) 
         self.price_total = taxes['total']
         if self.invoice_id:
+            self.price_gross = self.invoice_id.currency_id.round(
+                self.price_unit * self.quantity)
+            self.discount_value = self.invoice_id.currency_id.round(
+                self.price_gross - taxes['total'])
             self.price_subtotal = self.invoice_id.currency_id.round(
-                self.price_subtotal)
+                taxes['total'] - taxes['total_tax_discount'])
             self.price_total = self.invoice_id.currency_id.round(
-                self.price_total)
+                taxes['total'])
+
+            self.price_subtotal = taxes['total'] - (taxes['total_included'] - taxes['total'])
+            self.price_total = taxes['total']
 
     invoice_line_tax_id = fields.Many2many(
         'account.tax', 'account_invoice_line_tax', 'invoice_line_id',
@@ -627,6 +498,15 @@ class AccountInvoiceLine(models.Model):
     price_total = fields.Float(
         string='Amount', store=True, digits=dp.get_precision('Account'),
         readonly=True, compute='_compute_price')
+    price_gross = fields.Float(
+        string='Vlr. Bruto', store=True, compute='_compute_price',
+        digits=dp.get_precision('Account'))
+    total_taxes = fields.Float(
+        string='Total de Tributos', requeried=True, default=0.00,
+        digits=dp.get_precision('Account'))
+    discount_value = fields.Float(
+        string='Vlr. desconto', store=True, compute='_compute_price',
+        digits=dp.get_precision('Account'))
 
     def fields_view_get(self, cr, uid, view_id=None, view_type=False,
                         context=None, toolbar=False, submenu=False):
