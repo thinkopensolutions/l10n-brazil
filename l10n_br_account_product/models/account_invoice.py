@@ -399,11 +399,45 @@ class AccountInvoice(models.Model):
         store=True,
         digits=dp.get_precision('Account'),
         compute='_compute_amount')
+    cif = fields.Float(string="CIF", compute='get_afrmm_siscomex_cif', store=True, readonly=True,
+                       states={'draft': [('readonly', False)]})
+    taxa_siscomex = fields.Float(string="Siscomex", compute='get_afrmm_siscomex_cif', inverse='set_afrmm_siscomex',
+                                 store=True, readonly=True, states={'draft': [('readonly', False)]})
+    afrmm = fields.Float(string="AFRMM", compute='get_afrmm_siscomex_cif', inverse='set_afrmm_siscomex', store=True,
+                         readonly=True, states={'draft': [('readonly', False)]})
     incoterm = fields.Many2one('stock.incoterms', 'Tipo do Frete', readonly=True,
                                states = {'draft': [('readonly', False)]},
                                help = "Incoterm which stands for 'International Commercial terms \
                                 implies its a series of sales terms which are used in the \
                                  commercial transaction.")
+
+    @api.one
+    @api.depends('invoice_line.cif', 'invoice_line.taxa_siscomex', 'invoice_line.afrmm')
+    def get_afrmm_siscomex_cif(self):
+        cif = afrmm = taxa_siscomex = 0.0
+        for line in self.invoice_line:
+            cif += line.cif
+            afrmm += line.afrmm
+            taxa_siscomex += line.taxa_siscomex
+        self.cif = cif
+        self.afrmm = afrmm
+        self.taxa_siscomex = taxa_siscomex
+
+    @api.one
+    @api.depends('afrmm',  'taxa_siscomex','cif', 'invoice_line.cif')
+    def set_afrmm_siscomex(self):
+        # =(J11 /$H$8) * $Y$9
+        # (line cif / inv cif) * inv afrmm
+        cif = self.cif
+        siscomex = self.taxa_siscomex
+        affrm = self.afrmm
+        for line in self.invoice_line:
+            try:
+                line.taxa_siscomex = (line.cif / cif) * siscomex
+                line.afrmm = (line.cif / cif) * affrm
+            except:
+                line.taxa_siscomex = 0.0
+                line.afrmm = 0.0
     
     @api.onchange('carrier_id')
     def onchange_carrier_id(self):
@@ -956,9 +990,18 @@ class AccountInvoiceLine(models.Model):
         string=u"Item do Pedido (nItemPed)",
         size=6,
     )
+    taxa_siscomex = fields.Float(string="Siscomex")
+    afrmm = fields.Float(string="AFRMM")
+    cif = fields.Float(string="CIF", compute='_get_cif_value', store=True)
     fiscal_document_desc = fields.Char(related='product_id.fiscal_document_desc', store=True,
                                        string='Fiscal Document Description')
-    
+
+    @api.one
+    @api.depends('freight_value', 'insurance_value', 'other_costs_value', 'price_unit', 'quantity')
+    def _get_cif_value(self):
+        # FOB + FREIGHT + INSURANCE
+        self.cif = self.price_unit * self.quantity + self.freight_value + self.insurance_value + self.other_costs_value
+
     @api.one
     @api.depends('product_id.weight','quantity','uos_id')
     def _get_line_weight(self):
