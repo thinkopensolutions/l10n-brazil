@@ -321,7 +321,6 @@ class AccountInvoice(models.Model):
     def action_number(self):
         # TODO: not correct fix but required a fresh values before reading it.
         self.write({})
-
         for invoice in self:
             if invoice.issuer == '0':
                 sequence_obj = self.env['ir.sequence']
@@ -354,6 +353,17 @@ class AccountInvoice(models.Model):
                     {'internal_number': invoice.vendor_serie or invoice.internal_number,
                      'number': invoice.vendor_serie or invoice.internal_number,
                      })
+            # set name in move lines
+            # finalize_invoice_move_lines() can't set because internal_number is not computed
+            # action_number() is called after finalize_invoice_move_lines()
+            invoice_account_id = invoice.account_id.id
+            index = 1
+            for line in invoice.move_id.line_id:
+                # line is a tuple (0, 0, {values})
+                if invoice_account_id == line.account_id.id:
+                   line.name = '%s/%s' % \
+                                      (invoice.internal_number, index)
+                index += 1
         return True
 
     @api.multi
