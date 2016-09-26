@@ -188,7 +188,7 @@
 						   attrs="{'invisible': ['|', ('issuer', '=', '1'),('fiscal_type', '=', 'service')], 'required': ['|',('fiscal_type', '=', 'product'),('issuer', '=', '0')]}" />
 					<field name="fiscal_document_id"
 					attrs="{'invisible': ['|', ('issuer', '=', '1'),('fiscal_type', '=', 'service')], 'required': ['|',('fiscal_type', '=', 'product'),('issuer', '=', '0')]}"/>
-					<field name="internal_number" attrs="{'required': ['|',('fiscal_type', '=', 'service'),('issuer', '=', '1')]}"/>
+					<field name="internal_number" attrs="{'required': [('issuer', '=', '1'),('state','!=','draft')]}"/>
 					<field name="issuer" attrs="{'invisible': ['|',('fiscal_type','=','service'),('type', '=', 'out_invoice')]}" />
 				</field>
 				<field position="replace" name="fiscal_position">
