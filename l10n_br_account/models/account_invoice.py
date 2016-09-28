@@ -66,7 +66,12 @@ class AccountInvoice(models.Model):
     @api.model
     def _default_fiscal_document_serie(self):
         company = self.env['res.company'].browse(self.env.user.company_id.id)
-        return company.document_serie_service_id
+        fiscal_document_id = company.service_invoice_id
+        series = self.env['l10n_br_account.document.serie'].search(
+            [('fiscal_document_id', '=', fiscal_document_id)], order='priority asc')
+        if len(series):
+            return series[0]
+        return False
     
     
     #compute amount to consider withholdings
@@ -439,10 +444,14 @@ class AccountInvoice(models.Model):
             partner_invoice_id=partner_address_id, company_id=company_id,
             fiscal_category_id=fiscal_category_id)
 
-    @api.onchange('fiscal_document_id')
+    @api.onchange('fiscal_document_id','fiscal_document_id.priority')
     def onchange_fiscal_document_id(self):
-        if self.issuer == '0':
-            self.document_serie_id = self.company_id.document_serie_service_id
+        if not self.fiscal_document_id:
+            self.document_serie_id = False
+        series = self.env['l10n_br_account.document.serie'].search(
+            [('fiscal_document_id', '=', self.fiscal_document_id.id)], order='priority asc')
+        if len(series):
+            self.document_serie_id = series[0]
 
 
 class AccountInvoiceLine(models.Model):
