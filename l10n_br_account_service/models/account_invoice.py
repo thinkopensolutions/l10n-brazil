@@ -86,6 +86,13 @@ class AccountInvoice(models.Model):
                          ('nfse_denied', u'Denegada na Prefeitura')])
     
     nfse_description = fields.Text('NFS-e Description')
+    electornic_document_number = fields.Char('Electronic Doc Number')
+
+    @api.multi
+    def write(self, vals):
+        if 'electornic_document_number' in vals.keys() and vals['electornic_document_number']:
+            vals.update({'number' : vals['electornic_document_number']})
+        return super(AccountInvoice,self).write(vals)
     
     @api.multi
     def nfse_check(self):

@@ -229,6 +229,7 @@ class L10nBrAccountFiscalDocument(models.Model):
     code = fields.Char(u'Codigo', size=8, required=True)
     name = fields.Char(u'Descrição', size=64)
     electronic = fields.Boolean(u'Eletrônico')
+    document_serie_ids = fields.One2many('l10n_br_account.document.serie','fiscal_document_id','Document Serie')
 
 
 class L10nBrAccountDocumentSerie(models.Model):
@@ -236,6 +237,9 @@ class L10nBrAccountDocumentSerie(models.Model):
     _description = 'Serie de documentos fiscais'
 
     code = fields.Char(u'Código', size=3, required=True)
+
+    priority = fields.Integer(u'Priority', required=True, default=0,
+                              help="Serie with lowest priority is set by default")
 
     name = fields.Char(u'Descrição', required=True)
 
