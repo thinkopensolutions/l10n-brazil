@@ -74,6 +74,8 @@
 							<field name="code" select="1"/>
 							<field name="name" select="1"/>
 							<field name="electronic" select="2"/>
+							<separator string="Serie"/>
+							<field name="document_serie_ids" colspan="4" nolabel="1"/>
                         </group>
                     </sheet>
 				</form>
@@ -248,6 +250,7 @@
 							<field name="fiscal_type"/>
 							<field name="internal_sequence_id" select="1"/>
 							<field name="company_id"/>
+							<field name="priority"/>
                         </group>
                     </sheet>
 				</form>

@@ -20,11 +20,6 @@
 									<field name="out_invoice_service_fiscal_category_id"/>
 								</group>
 							</page>
-							<page string="Séries de Documentos Fiscais">
-								<group string="Série da Nota Fiscal de Serviço">
-									<field name="document_serie_service_id"/>
-								</group>
-							</page>
 							<page string="Impostos">
 								<separator colspan="4" string="Impostos sobre Serviços"/>
 								<field colspan="2" nolabel="1" widget="one2many_list" name="service_tax_definition_line"/>
