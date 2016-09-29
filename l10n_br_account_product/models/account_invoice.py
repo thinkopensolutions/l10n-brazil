@@ -1184,6 +1184,11 @@ class AccountInvoiceLine(models.Model):
             'context': ctx
         }
         result.update(self._fiscal_position_map(result, **kwargs))
+        fiscal_position = ctx.get('fiscal_position', False)
+        if fiscal_position:
+            fiscal_positions = result['value'].get('fiscal_positions',[])
+            if fiscal_position in fiscal_positions:
+                result['value']['fiscal_position'] = fiscal_position
         return result
 
     @api.multi
