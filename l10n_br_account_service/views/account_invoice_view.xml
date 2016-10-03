@@ -24,8 +24,8 @@
  						<label  for="nfse_description"/>
 						<field name="nfse_description" nolabel="1" placeholder="NFSe Description..."/>
  					</field>
-					<field name="internal_number" position="attributes">
-						<attribute name="invisible">1</attribute>
+					<field name="internal_number" position="replace">
+						<field name="internal_number" invisible="1"/>
 					</field>
 					<field name="internal_number" position="after">
 						<field name="electornic_document_number"/>
@@ -38,8 +38,8 @@
  			<field name="model">account.invoice</field>
  			<field name="inherit_id" ref="l10n_br_account.l10n_br_account_invoice_supplier_form"/>
  				<field name="arch" type="xml">
-					<field name="internal_number" position="attributes">
-						<attribute name="invisible">1</attribute>
+					<field name="internal_number" position="replace">
+						<field name="internal_number" invisible="1"/>
 					</field>
 					<field name="internal_number" position="after">
 						<field name="electornic_document_number"/>

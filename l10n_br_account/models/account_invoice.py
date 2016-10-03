@@ -352,9 +352,6 @@ class AccountInvoice(models.Model):
                     self.write(
                         {'internal_number': invoice.vendor_serie or invoice.internal_number,
                          'number': invoice.vendor_serie or invoice.internal_number})
-            else:
-                if not invoice.internal_number:
-                    raise UserError("Internal number not set")
             # set name in move lines
             # finalize_invoice_move_lines() can't set because internal_number is not computed
             # action_number() is called after finalize_invoice_move_lines()
@@ -364,7 +361,7 @@ class AccountInvoice(models.Model):
                 # line is a tuple (0, 0, {values})
                 if invoice_account_id == line.account_id.id:
                    line.name = '%s/%s' % \
-                                      (invoice.internal_number, index)
+                                      (invoice.move_id.name, index)
                 index += 1
         return True
 
