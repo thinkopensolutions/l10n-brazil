@@ -36,9 +36,9 @@ class AccountFiscalPositionTemplate(models.Model):
     type_tax_use = fields.Selection(
         [('sale', 'Sale'), ('purchase', 'Purchase'), ('all', 'All')],
         'Tax Application')
-    inv_copy_note = fields.Boolean('Copiar Observação na Nota Fiscal')
+    inv_copy_note = fields.Boolean(u'Copiar Observação na Nota Fiscal')
     asset_operation = fields.Boolean(
-        'Operação de Aquisição de Ativo',
+        u'Operação de Aquisição de Ativo',
         help="""Caso seja marcada essa opção, será incluido o IPI na base de
         calculo do ICMS.""")
     state = fields.Selection(
@@ -182,9 +182,9 @@ class AccountFiscalPosition(models.Model):
     type_tax_use = fields.Selection(
         [('sale', 'Sale'), ('purchase', 'Purchase'), ('all', 'All')],
         'Tax Application')
-    inv_copy_note = fields.Boolean('Copiar Observação na Nota Fiscal')
+    inv_copy_note = fields.Boolean(u'Copiar Observação na Nota Fiscal')
     asset_operation = fields.Boolean(
-        'Operação de Aquisição de Ativo',
+        u'Operação de Aquisição de Ativo',
         help="""Caso seja marcada essa opção, será incluido o IPI na base de
         calculo do ICMS.""")
     state = fields.Selection(
