@@ -1,23 +1,8 @@
 # -*- coding: utf-8 -*-
-###############################################################################
-#                                                                             #
-# Copyright (C) 2009 Gabriel C. Stabel                                        #
-# Copyright (C) 2009 Renato Lima (Akretion)                                   #
-# Copyright (C) 2012 Raphaël Valyi (Akretion)                                 #
-#                                                                             #
-# This program is free software: you can redistribute it and/or modify        #
-# it under the terms of the GNU Affero General Public License as published by #
-# the Free Software Foundation, either version 3 of the License, or           #
-# (at your option) any later version.                                         #
-#                                                                             #
-# This program is distributed in the hope that it will be useful,             #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
-# GNU Affero General Public License for more details.                         #
-#                                                                             #
-# You should have received a copy of the GNU Affero General Public License    #
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
-###############################################################################
+# Copyright (C) 2009 Gabriel C. Stabel
+# Copyright (C) 2009 Renato Lima (Akretion)
+# Copyright (C) 2012 Raphaël Valyi (Akretion)
+# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 import re
 
@@ -87,28 +72,60 @@ class ResPartner(models.Model):
 
     number = fields.Char(u'Número', size=10)
 
-    _sql_constraints = [
-        ('res_partner_cnpj_cpf_uniq', 'unique (cnpj_cpf)',
-         u'Já existe um parceiro cadastrado com este CPF/CNPJ !'),
-        ('res_partner_inscr_est_uniq', 'unique (inscr_est)',
-         u'Já existe um parceiro cadastrado com esta Inscrição Estadual/RG !')
-    ]
+    @api.multi
+    @api.constrains('cnpj_cpf', 'inscr_est')
+    def _check_cnpj_inscr_est(self):
+        for record in self:
+            domain = []
 
-    @api.one
+            # permite cnpj vazio
+            if not record.cnpj_cpf:
+                return
+
+            allow_cnpj_multi_ie = record.env['ir.config_parameter'].get_param(
+                'l10n_br_base_allow_cnpj_multi_ie', default=True)
+
+            if record.parent_id:
+                domain += [
+                    ('id', 'not in', record.parent_id.ids),
+                    ('parent_id', 'not in', record.parent_id.ids)
+                ]
+
+            domain += [
+                ('cnpj_cpf', '=', record.cnpj_cpf),
+                ('id', '!=', record.id)
+            ]
+
+            # se encontrar CNPJ iguais
+            if record.env['res.partner'].search(domain):
+
+                if allow_cnpj_multi_ie == u'True':
+                    for partner in record.env['res.partner'].search(domain):
+                        if (partner.inscr_est == record.inscr_est and
+                                not record.inscr_est):
+                            raise ValidationError(
+                                u'Já existe um parceiro cadastrado com esta '
+                                u'Inscrição Estadual !')
+                else:
+                    raise ValidationError(
+                        u'Já existe um parceiro cadastrado com este CNPJ !')
+
+    @api.multi
     @api.constrains('cnpj_cpf', 'country_id')
     def _check_cnpj_cpf(self):
         result = True
-        country_code = self.country_id.code or ''
-        if self.cnpj_cpf and country_code.upper() == 'BR':
-            if self.is_company:
-                if not fiscal.validate_cnpj(self.cnpj_cpf):
+        for record in self:
+            country_code = record.country_id.code or ''
+            if record.cnpj_cpf and country_code.upper() == 'BR':
+                if record.is_company:
+                    if not fiscal.validate_cnpj(record.cnpj_cpf):
+                        result = False
+                        document = u'CNPJ'
+                elif not fiscal.validate_cpf(record.cnpj_cpf):
                     result = False
-                    document = u'CNPJ'
-            elif not fiscal.validate_cpf(self.cnpj_cpf):
-                result = False
-                document = u'CPF'
-        if not result:
-            raise ValidationError(u"{} Invalido!".format(document))
+                    document = u'CPF'
+            if not result:
+                raise ValidationError(u"{} Invalido!".format(document))
 
     def _validate_ie_param(self, uf, inscr_est):
         result = True
@@ -125,7 +142,7 @@ class ResPartner(models.Model):
                 result = False
         return result
 
-    @api.one
+    @api.multi
     @api.constrains('inscr_est')
     def _check_ie(self):
         """Checks if company register number in field insc_est is valid,

@@ -1,28 +1,11 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
 #    OpenERP, Open Source Management Solution
 #    Copyright (C) 2004-2010 Tiny SPRL (<http://tiny.be>).
-#
 #    Thinkopen - Brasil
 #    Copyright (C) Thinkopen Solutions (<http://www.thinkopensolutions.com.br>)
 #    Akretion
 #    Copyright (C) Akretion (<http://www.akretion.com>)
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 import re
 
@@ -32,56 +15,66 @@ from openerp import models, fields, api
 class ResCompany(models.Model):
     _inherit = 'res.company'
 
-    @api.one
+    @api.multi
     def _get_l10n_br_data(self):
         """ Read the l10n_br specific functional fields. """
-        self.legal_name = self.partner_id.legal_name
-        self.cnpj_cpf = self.partner_id.cnpj_cpf
-        self.number = self.partner_id.number
-        self.district = self.partner_id.district
-        self.l10n_br_city_id = self.partner_id.l10n_br_city_id
-        self.inscr_est = self.partner_id.inscr_est
-        self.inscr_mun = self.partner_id.inscr_mun
-        self.suframa = self.partner_id.suframa
 
-    @api.one
+        for obj in self:
+            obj.legal_name = obj.partner_id.legal_name
+            obj.cnpj_cpf = obj.partner_id.cnpj_cpf
+            obj.number = obj.partner_id.number
+            obj.district = obj.partner_id.district
+            obj.l10n_br_city_id = obj.partner_id.l10n_br_city_id
+            obj.inscr_est = obj.partner_id.inscr_est
+            obj.inscr_mun = obj.partner_id.inscr_mun
+            obj.suframa = obj.partner_id.suframa
+
+    @api.multi
     def _set_l10n_br_legal_name(self):
         """ Write the l10n_br specific functional fields. """
+        self.ensure_one()
         self.partner_id.legal_name = self.legal_name
 
-    @api.one
+    @api.multi
     def _set_l10n_br_number(self):
         """ Write the l10n_br specific functional fields. """
+        self.ensure_one()
         self.partner_id.number = self.number
 
-    @api.one
+    @api.multi
     def _set_l10n_br_district(self):
         """ Write the l10n_br specific functional fields. """
+        self.ensure_one()
         self.partner_id.district = self.district
 
-    @api.one
+    @api.multi
     def _set_l10n_br_cnpj_cpf(self):
         """ Write the l10n_br specific functional fields. """
+        self.ensure_one()
         self.partner_id.cnpj_cpf = self.cnpj_cpf
 
-    @api.one
+    @api.multi
     def _set_l10n_br_inscr_est(self):
         """ Write the l10n_br specific functional fields. """
+        self.ensure_one()
         self.partner_id.inscr_est = self.inscr_est
 
-    @api.one
+    @api.multi
     def _set_l10n_br_inscr_mun(self):
         """ Write the l10n_br specific functional fields. """
+        self.ensure_one()
         self.partner_id.inscr_mun = self.inscr_mun
 
-    @api.one
+    @api.multi
     def _set_l10n_br_city_id(self):
         """ Write the l10n_br specific functional fields. """
+        self.ensure_one()
         self.partner_id.l10n_br_city_id = self.l10n_br_city_id
 
-    @api.one
+    @api.multi
     def _set_l10n_br_suframa(self):
         """ Write the l10n_br specific functional fields. """
+        self.ensure_one()
         self.partner_id.suframa = self.suframa
 
     legal_name = fields.Char(
@@ -94,7 +87,7 @@ class ResCompany(models.Model):
 
     number = fields.Char(
         compute=_get_l10n_br_data, inverse=_set_l10n_br_number, size=10,
-        string="Número", multi='address')
+        string=u"Número", multi='address')
 
     cnpj_cpf = fields.Char(
         compute=_get_l10n_br_data, inverse=_set_l10n_br_cnpj_cpf,

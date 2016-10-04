@@ -1,21 +1,6 @@
 # -*- coding: utf-8 -*-
-###############################################################################
-#                                                                             #
-# Copyright (C) 2013  Renato Lima - Akretion                                  #
-#                                                                             #
-# This program is free software: you can redistribute it and/or modify        #
-# it under the terms of the GNU Affero General Public License as published by #
-# the Free Software Foundation, either version 3 of the License, or           #
-# (at your option) any later version.                                         #
-#                                                                             #
-# This program is distributed in the hope that it will be useful,             #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
-# GNU Affero General Public License for more details.                         #
-#                                                                             #
-# You should have received a copy of the GNU Affero General Public License    #
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
-###############################################################################
+# Copyright (C) 2013  Renato Lima - Akretion
+# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 from datetime import datetime
 
@@ -115,7 +100,8 @@ class NFe200(FiscalDocument):
         self.nfe.infNFe.ide.cUF.valor = (company.state_id and
                                          company.state_id.ibge_code or '')
         self.nfe.infNFe.ide.cNF.valor = ''
-        self.nfe.infNFe.ide.natOp.valor = invoice.fiscal_category_id.name or ''
+        self.nfe.infNFe.ide.natOp.valor = (
+            invoice.fiscal_category_id.name[:60] or '')
         self.nfe.infNFe.ide.indPag.valor = (invoice.payment_term and
                                             invoice.payment_term.indPag or '0')
         self.nfe.infNFe.ide.mod.valor = invoice.fiscal_document_id.code or ''
@@ -132,6 +118,7 @@ class NFe200(FiscalDocument):
         self.nfe.infNFe.ide.finNFe.valor = invoice.nfe_purpose
         self.nfe.infNFe.ide.procEmi.valor = 0
         self.nfe.infNFe.ide.verProc.valor = 'Odoo Brasil v8'
+        self.nfe.infNFe.compra.xPed.valor = invoice.name or ''
 
         if invoice.cfop_ids[0].type in ("input"):
             self.nfe.infNFe.ide.tpNF.valor = 0
@@ -364,6 +351,8 @@ class NFe200(FiscalDocument):
         self.det.prod.vDesc.valor = str("%.2f" % invoice_line.discount_value)
         self.det.prod.vOutro.valor = str(
             "%.2f" % invoice_line.other_costs_value)
+        self.det.prod.xPed.valor = invoice_line.partner_order or ''
+        self.det.prod.nItemPed.valor = invoice_line.partner_order_line or ''
         self.det.infAdProd.valor = invoice_line.fiscal_comment or ''
 
         #

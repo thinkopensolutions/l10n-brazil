@@ -1,21 +1,6 @@
 # -*- coding: utf-8 -*-
-###############################################################################
-#                                                                             #
 # Copyright (C) 2013  Renato Lima - Akretion                                  #
-#                                                                             #
-# This program is free software: you can redistribute it and/or modify        #
-# it under the terms of the GNU Affero General Public License as published by #
-# the Free Software Foundation, either version 3 of the License, or           #
-# (at your option) any later version.                                         #
-#                                                                             #
-# This program is distributed in the hope that it will be useful,             #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
-# GNU Affero General Public License for more details.                         #
-#                                                                             #
-# You should have received a copy of the GNU Affero General Public License    #
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
-###############################################################################
+# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 import datetime
 from lxml import etree
@@ -23,6 +8,7 @@ from lxml import etree
 from openerp import models, fields, api, _
 from openerp.addons import decimal_precision as dp
 from openerp.exceptions import RedirectWarning
+from openerp.exceptions import ValidationError
 
 from openerp.addons.l10n_br_account.models.account_invoice import (
     OPERATION_TYPE,
@@ -37,6 +23,7 @@ from openerp.addons.l10n_br_account_product.sped.nfe.validator import txt
 
 class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
+    _order = 'date_hour_invoice DESC, internal_number DESC'
 
     @api.one
     @api.depends('invoice_line', 'tax_line.amount')
@@ -585,14 +572,14 @@ class AccountInvoiceLine(models.Model):
             insurance_value=self.insurance_value,
             freight_value=self.freight_value,
             other_costs_value=self.other_costs_value)
+        self.price_tax_discount = 0.0
         self.price_subtotal = 0.0
-        self.price_total = 0.0
         self.price_gross = 0.0
         self.discount_value = 0.0
         if self.invoice_id:
-            self.price_subtotal = self.invoice_id.currency_id.round(
+            self.price_tax_discount = self.invoice_id.currency_id.round(
                 taxes['total'] - taxes['total_tax_discount'])
-            self.price_total = self.invoice_id.currency_id.round(
+            self.price_subtotal = self.invoice_id.currency_id.round(
                 taxes['total'])
             self.price_gross = self.invoice_id.currency_id.round(
                 self.price_unit * self.quantity)
@@ -631,11 +618,8 @@ class AccountInvoiceLine(models.Model):
     price_gross = fields.Float(
         string='Vlr. Bruto', store=True, compute='_compute_price',
         digits=dp.get_precision('Account'))
-    price_subtotal = fields.Float(
-        string='Subtotal', store=True, compute='_compute_price',
-        digits=dp.get_precision('Account'))
-    price_total = fields.Float(
-        string='Total', store=True, compute='_compute_price',
+    price_tax_discount = fields.Float(
+        string='Vlr. s/ Impostos', store=True, compute='_compute_price',
         digits=dp.get_precision('Account'))
     icms_manual = fields.Boolean('ICMS Manual?', default=False)
     icms_origin = fields.Selection(PRODUCT_ORIGIN, 'Origem', default='0')
@@ -808,6 +792,14 @@ class AccountInvoiceLine(models.Model):
     line_gross_weight = fields.Float(string='Weight', compute='_get_line_weight')
     line_net_weight = fields.Float(string='Weight', compute='_get_line_weight')
     fiscal_comment = fields.Text(u'Observação Fiscal')
+    partner_order = fields.Char(
+        string=u"Código do Pedido (xPed)",
+        size=15,
+    )
+    partner_order_line = fields.Char(
+        string=u"Item do Pedido (nItemPed)",
+        size=6,
+    )
     fiscal_document_desc = fields.Char(related='product_id.fiscal_document_desc', store=True,
                                        string='Fiscal Document Description')
     
@@ -816,7 +808,17 @@ class AccountInvoiceLine(models.Model):
     def _get_line_weight(self):
         self.line_gross_weight = self.quantity * self.uos_id.factor_inv * self.product_id.weight
         self.line_net_weight = self.quantity * self.uos_id.factor_inv * self.product_id.weight_net
-    
+
+
+    @api.onchange("partner_order_line")
+    def _check_partner_order_line(self):
+        if (self.partner_order_line and
+                not self.partner_order_line.isdigit()):
+            raise ValidationError(
+                _(u"Customer Order Line must "
+                  "be a number with up to six digits")
+            )
+
     def _amount_tax_icms(self, tax=None):
         result = {
             'icms_base': tax.get('total_base', 0.0),

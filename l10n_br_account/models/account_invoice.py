@@ -1,21 +1,6 @@
 # -*- coding: utf-8 -*-
-###############################################################################
-#                                                                             #
 # Copyright (C) 2009 - TODAY Renato Lima - Akretion                           #
-#                                                                             #
-# This program is free software: you can redistribute it and/or modify        #
-# it under the terms of the GNU Affero General Public License as published by #
-# the Free Software Foundation, either version 3 of the License, or           #
-# (at your option) any later version.                                         #
-#                                                                             #
-# This program is distributed in the hope that it will be useful,             #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
-# GNU Affero General Public License for more details.                         #
-#                                                                             #
-# You should have received a copy of the GNU Affero General Public License    #
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
-###############################################################################
+# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 from lxml import etree
 
@@ -43,6 +28,7 @@ JOURNAL_TYPE = {
 
 class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
+    _order = 'date_invoice DESC, internal_number DESC'
 
     @api.one
     @api.depends(
@@ -149,8 +135,12 @@ class AccountInvoice(models.Model):
     amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
     amount_total_liquid = fields.Float(compute='_compute_amount', string='Liquid', digits=dp.get_precision('Account'), store=True)
     withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
-    amount_discount = fields.Float(string='Desconto', store=True, digits=dp.get_precision('Account'),
-                                   compute='_compute_amount')
+    amount_discount = fields.Float(string='Desconto', store=True, digits=dp.get_precision('Account'))
+    revenue_expense = fields.Boolean(
+        related='journal_id.revenue_expense',
+        readonly=True,
+        store=True,
+        string='Gera Financeiro')
 
     _order = 'internal_number desc'
     
@@ -508,8 +498,9 @@ class AccountInvoiceLine(models.Model):
     fiscal_position = fields.Many2one(
         'account.fiscal.position', u'Posição Fiscal',
         domain="[('fiscal_category_id', '=', fiscal_category_id)]")
-    price_total = fields.Float(
-        string='Amount', store=True, digits=dp.get_precision('Account'),
+    price_tax_discount = fields.Float(
+        string='Price Tax discount', store=True,
+        digits=dp.get_precision('Account'),
         readonly=True, compute='_compute_price')
     price_gross = fields.Float(
         string='Vlr. Bruto', store=True, compute='_compute_price',
@@ -553,3 +544,14 @@ class AccountInvoiceLine(models.Model):
             result['arch'] = etree.tostring(eview)
 
         return result
+
+    @api.model
+    def move_line_get_item(self, line):
+        """
+            Overrrite core to fix invoice total account.move
+        :param line:
+        :return:
+        """
+        res = super(AccountInvoiceLine, self).move_line_get_item(line)
+        res['price'] = line.price_tax_discount
+        return res

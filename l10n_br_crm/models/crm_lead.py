@@ -1,21 +1,6 @@
 # -*- coding: utf-8 -*-
-###############################################################################
-#                                                                             #
-# Copyright (C) 2012 - TODAY  Renato Lima - Akretion                          #
-#                                                                             #
-# This program is free software: you can redistribute it and/or modify        #
-# it under the terms of the GNU Affero General Public License as published by #
-# the Free Software Foundation, either version 3 of the License, or           #
-# (at your option) any later version.                                         #
-#                                                                             #
-# This program is distributed in the hope that it will be useful,             #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
-# GNU Affero General Public License for more details.                         #
-#                                                                             #
-# You should have received a copy of the GNU Affero General Public License    #
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
-###############################################################################
+# Copyright (C) 2012 - TODAY  Renato Lima - Akretion
+# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 import re
 
@@ -40,33 +25,35 @@ class CrmLead(models.Model):
         'l10n_br_base.city', 'Municipio',
         domain="[('state_id','=',state_id)]")
     district = fields.Char('Bairro', size=32)
-    number = fields.Char('Número', size=10)
+    number = fields.Char(u'Número', size=10)
     name_surname = fields.Char(u'Nome e sobrenome', size=128,
                                help="Nome utilizado em documentos fiscais")
     cpf = fields.Char('CPF', size=18)
     rg = fields.Char('RG', size=16)
 
-    @api.one
+    @api.multi
     @api.constrains('cnpj')
     def _check_cnpj(self):
-        country_code = self.country_id.code or ''
-        if self.cnpj and country_code.upper() == 'BR':
-            cnpj = re.sub('[^0-9]', '', self.cnpj)
-            if not fiscal.validate_cnpj(cnpj):
-                raise ValidationError(_(u'CNPJ inválido!'))
-        return True
+        for record in self:
+            country_code = record.country_id.code or ''
+            if record.cnpj and country_code.upper() == 'BR':
+                cnpj = re.sub('[^0-9]', '', record.cnpj)
+                if not fiscal.validate_cnpj(cnpj):
+                    raise ValidationError(_(u'CNPJ inválido!'))
+            return True
 
-    @api.one
+    @api.multi
     @api.constrains('cpf')
     def _check_cpf(self):
-        country_code = self.country_id.code or ''
-        if self.cpf and country_code.upper() == 'BR':
-            cpf = re.sub('[^0-9]', '', self.cpf)
-            if not fiscal.validate_cpf(cpf):
-                raise ValidationError(_(u'CPF inválido!'))
-        return True
+        for record in self:
+            country_code = record.country_id.code or ''
+            if record.cpf and country_code.upper() == 'BR':
+                cpf = re.sub('[^0-9]', '', record.cpf)
+                if not fiscal.validate_cpf(cpf):
+                    raise ValidationError(_(u'CPF inválido!'))
+            return True
 
-    @api.one
+    @api.multi
     @api.constrains('inscr_est')
     def _check_ie(self):
         """Checks if company register number in field insc_est is valid,
