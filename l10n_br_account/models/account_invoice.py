@@ -502,6 +502,9 @@ class AccountInvoiceLine(models.Model):
         string='Price Tax discount', store=True,
         digits=dp.get_precision('Account'),
         readonly=True, compute='_compute_price')
+    price_total = fields.Float(
+        string='Amount', store=True, digits=dp.get_precision('Account'),
+        readonly=True, compute='_compute_price')
     price_gross = fields.Float(
         string='Vlr. Bruto', store=True, compute='_compute_price',
         digits=dp.get_precision('Account'))
