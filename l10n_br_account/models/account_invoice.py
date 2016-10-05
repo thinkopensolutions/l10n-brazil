@@ -548,13 +548,14 @@ class AccountInvoiceLine(models.Model):
 
         return result
 
-    @api.model
-    def move_line_get_item(self, line):
-        """
-            Overrrite core to fix invoice total account.move
-        :param line:
-        :return:
-        """
-        res = super(AccountInvoiceLine, self).move_line_get_item(line)
-        res['price'] = line.price_tax_discount
-        return res
+    # this code results in unbalanced account moves
+    # @api.model
+    # def move_line_get_item(self, line):
+    #     """
+    #         Overrrite core to fix invoice total account.move
+    #     :param line:
+    #     :return:
+    #     """
+    #     res = super(AccountInvoiceLine, self).move_line_get_item(line)
+    #     res['price'] = line.price_tax_discount
+    #     return res
