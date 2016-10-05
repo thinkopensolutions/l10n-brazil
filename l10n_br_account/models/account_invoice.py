@@ -502,6 +502,9 @@ class AccountInvoiceLine(models.Model):
         string='Price Tax discount', store=True,
         digits=dp.get_precision('Account'),
         readonly=True, compute='_compute_price')
+    price_total = fields.Float(
+        string='Amount', store=True, digits=dp.get_precision('Account'),
+        readonly=True, compute='_compute_price')
     price_gross = fields.Float(
         string='Vlr. Bruto', store=True, compute='_compute_price',
         digits=dp.get_precision('Account'))
@@ -545,13 +548,14 @@ class AccountInvoiceLine(models.Model):
 
         return result
 
-    @api.model
-    def move_line_get_item(self, line):
-        """
-            Overrrite core to fix invoice total account.move
-        :param line:
-        :return:
-        """
-        res = super(AccountInvoiceLine, self).move_line_get_item(line)
-        res['price'] = line.price_tax_discount
-        return res
+    # this code results in unbalanced account moves
+    # @api.model
+    # def move_line_get_item(self, line):
+    #     """
+    #         Overrrite core to fix invoice total account.move
+    #     :param line:
+    #     :return:
+    #     """
+    #     res = super(AccountInvoiceLine, self).move_line_get_item(line)
+    #     res['price'] = line.price_tax_discount
+    #     return res
