@@ -1360,9 +1360,16 @@ class AccountInvoiceLine(models.Model):
 
     @api.model
     def create(self, vals):
+        if 'fiscal_document_desc' in vals.keys():
+            vals['fiscal_document_desc'] = vals['fiscal_document_desc'].encode('utf-8').replace('–','-')
         vals.update(self._validate_taxes(vals))
         return super(AccountInvoiceLine, self).create(vals)
 
+    @api.multi
+    def write(self, vals):
+        if 'fiscal_document_desc' in vals.keys():
+            vals['fiscal_document_desc'] = vals['fiscal_document_desc'].encode('utf-8').replace('–', '-')
+        return super(AccountInvoiceLine, self).write(vals)
     # TODO comentado por causa deste bug
     # https://github.com/odoo/odoo/issues/2197
     # @api.multi
