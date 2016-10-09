@@ -153,7 +153,8 @@ class ResPartner(models.Model):
             elif not self.is_company and len(val) == 11:
                 cnpj_cpf = "%s.%s.%s-%s" % (
                     val[0:3], val[3:6], val[6:9], val[9:11])
-            self.cnpj_cpf = cnpj_cpf
+            if cnpj_cpf:
+                self.cnpj_cpf = cnpj_cpf
 
     @api.onchange('l10n_br_city_id')
     def _onchange_l10n_br_city_id(self):
@@ -187,22 +188,14 @@ class ResPartner(models.Model):
         return list(address_fields + ['l10n_br_city_id', 'number', 'district'])
 
 
-class ResPartnerBank(models.Model):
-    """ Adiciona campos necessários para o cadastramentos de contas
-    bancárias no Brasil."""
-    _inherit = 'res.partner.bank'
+class Bank(models.Model):
+    _inherit = 'res.bank'
 
     number = fields.Char(u'Número', size=10)
-    street2 = fields.Char('Street2', size=128)
     district = fields.Char('Bairro', size=32)
     l10n_br_city_id = fields.Many2one(
         'l10n_br_base.city', 'Municipio',
         domain="[('state_id','=',state_id)]")
-    acc_number = fields.Char("Account Number", size=64, required=False)
-    bank = fields.Many2one('res.bank', 'Bank', required=False)
-    acc_number_dig = fields.Char('Digito Conta', size=8)
-    bra_number = fields.Char(u'Agência', size=8)
-    bra_number_dig = fields.Char(u'Dígito Agência', size=8)
 
     @api.onchange('l10n_br_city_id')
     def _onchange_l10n_br_city_id(self):
@@ -219,11 +212,15 @@ class ResPartnerBank(models.Model):
         if self.l10n_br_city_id:
             self.city = self.l10n_br_city_id.name
 
-    @api.multi
-    def onchange_partner_id(self, partner_id):
-        result = super(ResPartnerBank, self).onchange_partner_id(partner_id)
-        partner = self.env['res.partner'].browse(partner_id)
-        result['value']['number'] = partner.number
-        result['value']['district'] = partner.district
-        result['value']['l10n_br_city_id'] = partner.l10n_br_city_id.id
-        return result
+
+class ResPartnerBank(models.Model):
+    """ Adiciona campos necessários para o cadastramentos de contas
+    bancárias no Brasil."""
+    _inherit = 'res.partner.bank'
+
+
+    acc_number = fields.Char("Account Number", size=64, required=False)
+    bank = fields.Many2one('res.bank', 'Bank', required=False)
+    acc_number_dig = fields.Char('Digito Conta', size=8)
+    bra_number = fields.Char(u'Agência', size=8)
+    bra_number_dig = fields.Char(u'Dígito Agência', size=8)
