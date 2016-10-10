@@ -2,6 +2,12 @@
 <openerp>
 	<data>
 
+		<record id="res_partner_title_pvt_ltd" model="res.partner.title">
+            <field name="domain">partner</field>
+            <field name="name">Corp.</field>
+            <field name="shortcut">Corp.</field>
+        </record>
+
 		<record id="res_partner_intel" model="res.partner">
 			<field name="name">Intel do Brasil</field>
 			<field name="legal_name">Intel do Brasil</field>
@@ -367,7 +373,7 @@
 		</record>
 
 		<record id="res_partner_akretion" model="res.partner">
-			<field name="title" ref="base.res_partner_title_pvt_ltd"/>
+			<field name="title" ref="res_partner_title_pvt_ltd"/>
 			<field name="cnpj_cpf">11.034.414/0001-58</field>
 			<field eval="0" name="employee"/>
 			<field eval="1" name="customer"/>
@@ -389,7 +395,7 @@
 		</record>
 
 		<record id="res_partner_address_ak2" model="res.partner">
-			<field name="title" ref="base.res_partner_title_pvt_ltd"/>
+			<field name="title" ref="res_partner_title_pvt_ltd"/>
 			<field eval="0" name="employee"/>
 			<field eval="1" name="customer"/>
 			<field eval="1" name="supplier"/>
