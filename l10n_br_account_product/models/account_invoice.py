@@ -63,7 +63,6 @@ class AccountInvoice(models.Model):
                        - sum(tax.amount for tax in self.withholding_tax_lines if not tax.tax_code_id.tax_discount)
                        
         self.amount_total = self.amount_untaxed + \
-            self.amount_costs + self.amount_insurance + self.amount_freight + \
             amount_tax_without_tax_discount - self.amount_tax_withholding
         self.amount_total_liquid = self.amount_untaxed - amount_tax_with_tax_discount  - self.amount_tax_withholding
         
