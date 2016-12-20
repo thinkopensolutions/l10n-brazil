@@ -52,7 +52,7 @@ class AccountInvoice(models.Model):
     @api.model
     def _default_fiscal_document_serie(self):
         company = self.env['res.company'].browse(self.env.user.company_id.id)
-        fiscal_document_id = company.service_invoice_id
+        fiscal_document_id = company.service_invoice_id.id 
         series = self.env['l10n_br_account.document.serie'].search(
             [('fiscal_document_id', '=', fiscal_document_id)], order='priority asc')
         if len(series):
@@ -264,7 +264,7 @@ class AccountInvoice(models.Model):
 
         if view_type == 'form':
             eview = etree.fromstring(result['arch'])
-
+			
             if 'type' in context.keys():
                 fiscal_types = eview.xpath("//field[@name='invoice_line']")
                 for fiscal_type in fiscal_types:
@@ -272,7 +272,6 @@ class AccountInvoice(models.Model):
                         'context', "{'type': '%s', 'fiscal_type': '%s'}" % (
                             context['type'],
                             context.get('fiscal_type', 'service')))
-
                 fiscal_categories = eview.xpath(
                     "//field[@name='fiscal_category_id']")
                 for fiscal_category_id in fiscal_categories:
@@ -527,7 +526,6 @@ class AccountInvoiceLine(models.Model):
 
         if view_type == 'form':
             eview = etree.fromstring(result['arch'])
-
             if 'type' in context.keys():
                 expr = "//field[@name='fiscal_category_id']"
                 fiscal_categories = eview.xpath(expr)
@@ -541,8 +539,22 @@ class AccountInvoiceLine(models.Model):
 
             product_ids = eview.xpath("//field[@name='product_id']")
             for product_id in product_ids:
-                product_id.set('domain', "[('fiscal_type', '=', '%s')]" % (
-                    context.get('fiscal_type', 'service')))
+                type = context.get('type',False)
+                module_obj = self.pool.get('ir.module.module')
+                purchase_module = module_obj.search(cr, uid, [('name', '=', 'purchase')])
+                state = False
+                if len(purchase_module):
+                    state = module_obj.browse(cr, uid, purchase_module[0]).state
+                if type in ['out_invoice']:
+                    product_id.set('domain', "[('fiscal_type', '=', '%s'),('sale_ok', '=', True)]" % (
+                        context.get('fiscal_type', 'service')))
+                elif type in ['in_invoice'] and state == 'installed':
+                    product_id.set('domain', "[('fiscal_type', '=', '%s'),('purchase_ok', '=', True)]" % (
+                        context.get('fiscal_type', 'service')))
+                else:
+                    product_id.set('domain', "[('fiscal_type', '=', '%s')]" % (
+                        context.get('fiscal_type', 'service')))
+
 
             result['arch'] = etree.tostring(eview)
 
