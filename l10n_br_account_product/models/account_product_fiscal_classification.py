@@ -1,8 +1,21 @@
 # -*- coding: utf-8 -*-
+###############################################################################
+#
 # Copyright (C) 2012  Renato Lima - Akretion
-# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
-
-from datetime import timedelta, date
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###############################################################################
 
 from openerp import models, fields, api
 from openerp.addons import decimal_precision as dp
@@ -11,11 +24,6 @@ from openerp.addons.l10n_br_account.models.l10n_br_account import (
     L10nBrTaxDefinition,
     L10nBrTaxDefinitionTemplate
 )
-from openerp.addons.l10n_br_account.sped.ibpt.deolhonoimposto import (
-    DeOlhoNoImposto,
-    get_ibpt_product
-)
-from openerp.addons.l10n_br_base.tools.misc import punctuation_rm
 
 
 class AccountProductFiscalClassificationTemplate(models.Model):
@@ -71,9 +79,8 @@ class AccountProductFiscalClassificationTemplate(models.Model):
         compute='_compute_taxes')
 
     tax_estimate_ids = fields.One2many(
-        comodel_name='l10n_br_tax.estimate.template',
-        inverse_name='fiscal_classification_id',
-        string=u'Impostos Estimados')
+        'l10n_br_tax.estimate.template', 'fiscal_classification_id',
+        'Impostos Estimados')
 
     _sql_constraints = [
         ('account_fiscal_classfication_code_uniq', 'unique (code)',
@@ -86,10 +93,6 @@ class L10nBrTaxDefinitionTemplateModel(L10nBrTaxDefinitionTemplate):
     fiscal_classification_id = fields.Many2one(
         'account.product.fiscal.classification.template',
         'Fiscal Classification', select=True)
-    tax_ipi_guideline_id = fields.Many2one(
-        'l10n_br_account_product.ipi_guideline', string=u'Enquadramento IPI')
-    tax_icms_relief_id = fields.Many2one(
-        'l10n_br_account_product.icms_relief', string=u'Desoneração ICMS')
 
     _sql_constraints = [
         ('l10n_br_tax_definition_template_tax_template_id_uniq', 'unique \
@@ -135,18 +138,15 @@ class L10nBrTaxEstimateModel(models.AbstractModel):
         'Impostos Municipais Nacional', default=0.00,
         digits_compute=dp.get_precision('Account'))
 
-    create_date = fields.Datetime(
-        u'Data de Criação', readonly=True)
+    date_start = fields.Date('Data Inicial')
+
+    date_end = fields.Date('Data Final')
 
     key = fields.Char('Chave', size=32)
 
     version = fields.Char(u'Versão', size=32)
 
     origin = fields.Char('Fonte', size=32)
-
-    company_id = fields.Many2one(
-        comodel_name='res.company'
-    )
 
 
 class L10nBrTaxEstimateTemplate(models.Model):
@@ -171,21 +171,6 @@ class AccountProductFiscalClassification(models.Model):
                                fc.sale_tax_definition_line]
             fc.purchase_tax_ids = [line.tax_id.id for line in
                                    fc.purchase_tax_definition_line]
-
-    @api.multi
-    @api.depends('tax_estimate_ids')
-    def _compute_product_estimated_taxes_percent(self):
-        for record in self:
-            t_ids = record.tax_estimate_ids.ids
-            last_estimated = self.env['l10n_br_tax.estimate'].search(
-                [('id', 'in', t_ids)], order='create_date DESC', limit=1)
-
-            record.estd_import_taxes_perct = (
-                last_estimated.federal_taxes_import +
-                last_estimated.state_taxes + last_estimated.municipal_taxes)
-            record.estd_national_taxes_perct = (
-                last_estimated.federal_taxes_national +
-                last_estimated.state_taxes + last_estimated.municipal_taxes)
 
     type = fields.Selection([('view', u'Visão'),
                              ('normal', 'Normal'),
@@ -224,101 +209,12 @@ class AccountProductFiscalClassification(models.Model):
         compute='_compute_taxes', store=True)
 
     tax_estimate_ids = fields.One2many(
-        comodel_name='l10n_br_tax.estimate',
-        inverse_name='fiscal_classification_id',
-        string=u'Impostos Estimados', readonly=True)
-
-    estd_import_taxes_perct = fields.Float(
-        string=u'Impostos de Importação Estimados(%)',
-        compute='_compute_product_estimated_taxes_percent', store=True)
-
-    estd_national_taxes_perct = fields.Float(
-        string=u'Impostos Nacionais Estimados(%)',
-        compute='_compute_product_estimated_taxes_percent', store=True)
+        'l10n_br_tax.estimate', 'fiscal_classification_id',
+        'Impostos Estimados')
 
     _sql_constraints = [
         ('account_fiscal_classfication_code_uniq', 'unique (code)',
          u'Já existe um classificação fiscal com esse código!')]
-
-    @api.multi
-    def get_ibpt(self):
-        for fiscal_classification in self:
-
-            company = (
-                fiscal_classification.env.user.company_id or
-                fiscal_classification.company_id)
-
-            config = DeOlhoNoImposto(
-                company.ipbt_token, punctuation_rm(company.cnpj_cpf),
-                company.state_id.code)
-
-            result = get_ibpt_product(
-                config,
-                punctuation_rm(fiscal_classification.code or ''),
-            )
-
-            vals = {
-                'fiscal_classification_id': fiscal_classification.id,
-                'origin': 'IBPT-WS',
-                'state_id': company.state_id.id,
-                'state_taxes': result.estadual,
-                'federal_taxes_national': result.nacional,
-                'federal_taxes_import': result.importado,
-                'company_id': company.id,
-                }
-
-            tax_estimate = fiscal_classification.env[
-                'l10n_br_tax.estimate']
-
-            tax_estimate.create(vals)
-
-        return True
-
-    @api.model
-    def update_due_ncm(self):
-
-        config_date = self.env['account.config.settings'].browse(
-            [1]).ibpt_update_days
-        today = date.today()
-        data_max = today - timedelta(days=config_date)
-
-        all_ncm = self.env[
-            'account.product.fiscal.classification'].search([])
-
-        not_estimated = all_ncm.filtered(
-            lambda r: r.product_tmpl_qty > 0 and not r.tax_estimate_ids
-        )
-
-        query = (
-            "WITH ncm_max_date AS ("
-            "   SELECT "
-            "       fiscal_classification_id, "
-            "       max(create_date) "
-            "   FROM  "
-            "       l10n_br_tax_estimate "
-            "   GROUP BY "
-            "       fiscal_classification_id"
-            ") SELECT fiscal_classification_id "
-            "FROM "
-            "   ncm_max_date "
-            "WHERE "
-            "   max < %(create_date)s  "
-        )
-        query_params = {'create_date': data_max.strftime('%Y-%m-%d')}
-
-        self._cr.execute(self._cr.mogrify(query, query_params))
-        past_estimated = self._cr.fetchall()
-
-        ids = [estimate[0] for estimate in past_estimated]
-
-        ncm_past_estimated = self.env[
-            'account.product.fiscal.classification'].browse(ids)
-
-        for ncm in not_estimated + ncm_past_estimated:
-            try:
-                ncm.get_ibpt()
-            except:
-                pass
 
 
 class L10nBrTaxDefinitionModel(L10nBrTaxDefinition):
@@ -327,10 +223,6 @@ class L10nBrTaxDefinitionModel(L10nBrTaxDefinition):
     fiscal_classification_id = fields.Many2one(
         'account.product.fiscal.classification',
         'Parent Fiscal Classification', select=True)
-    tax_ipi_guideline_id = fields.Many2one(
-        'l10n_br_account_product.ipi_guideline', string=u'Enquadramento IPI')
-    tax_icms_relief_id = fields.Many2one(
-        'l10n_br_account_product.icms_relief', string=u'Desoneração ICMS')
 
     _sql_constraints = [
         ('l10n_br_tax_definition_tax_id_uniq', 'unique (tax_id,\
@@ -352,7 +244,7 @@ class L10nBrTaxEstimate(models.Model):
     _inherit = 'l10n_br_tax.estimate.model'
 
     fiscal_classification_id = fields.Many2one(
-        'account.product.fiscal.classification',
+        'account.product.fiscal.classification.template',
         'Fiscal Classification', select=True)
 
 

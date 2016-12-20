@@ -1,6 +1,21 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013  Renato Lima - Akretion
-# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
+###############################################################################
+#                                                                             #
+# Copyright (C) 2013  Renato Lima - Akretion                                  #
+#                                                                             #
+# This program is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU Affero General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or           #
+# (at your option) any later version.                                         #
+#                                                                             #
+# This program is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
+# GNU Affero General Public License for more details.                         #
+#                                                                             #
+# You should have received a copy of the GNU Affero General Public License    #
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
+###############################################################################
 
 from openerp import models, fields, api
 
@@ -31,6 +46,7 @@ class ResCompany(models.Model):
     nfe_version = fields.Selection(
         [('1.10', '1.10'), ('2.00', '2.00'), ('3.10', '3.10')], u'Versão NFe',
         required=True, default='3.10')
+    nfe_root_folder = fields.Char('Pasta Raiz', size=254)
     nfe_import_folder = fields.Char('Pasta de Importação', size=254)
     nfe_export_folder = fields.Char('Pasta de Exportação', size=254)
     nfe_backup_folder = fields.Char('Pasta de Backup', size=254)
@@ -69,26 +85,12 @@ class ResCompany(models.Model):
         " ('type','=','input')]")
     nfe_a1_file = fields.Binary('Arquivo NFe A1')
     nfe_a1_password = fields.Char('Senha NFe A1', size=64)
-    freight_tax_id = fields.Many2one(
-        'account.tax', string='Freight Sale Tax',
-        domain=[('domain', '=', 'freight')])
-    insurance_tax_id = fields.Many2one(
-        'account.tax', string='Insurance Sale Tax',
-        domain=[('domain', '=', 'insurance')])
-    other_costs_tax_id = fields.Many2one(
-        'account.tax', string='Other Costs Sale Tax',
-        domain=[('domain', '=', 'other_costs')])
-    accountant_cnpj_cpf = fields.Char(size=18, string='CNPJ/CPF Contador')
 
 
 class L10nBrTaxDefinitionCompanyProduct(L10nBrTaxDefinition, models.Model):
     _name = 'l10n_br_tax.definition.company.product'
 
     company_id = fields.Many2one('res.company', 'Empresa')
-    tax_ipi_guideline_id = fields.Many2one(
-        'l10n_br_account_product.ipi_guideline', string=u'Enquadramento IPI')
-    tax_icms_relief_id = fields.Many2one(
-        'l10n_br_account_product.icms_relief', string=u'Desoneração ICMS')
 
     _sql_constraints = [
         ('l10n_br_tax_definition_tax_id_uniq',

@@ -1,10 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013  Renato Lima - Akretion
-# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
+###############################################################################
+#                                                                             #
+# Copyright (C) 2013  Renato Lima - Akretion                                  #
+#                                                                             #
+# This program is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU Affero General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or           #
+# (at your option) any later version.                                         #
+#                                                                             #
+# This program is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
+# GNU Affero General Public License for more details.                         #
+#                                                                             #
+# You should have received a copy of the GNU Affero General Public License    #
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
+###############################################################################
 
 from datetime import datetime
 
-from openerp import pooler
+#from openerp import pooler
 from openerp.exceptions import Warning as UserError
 from openerp.tools.translate import _
 
@@ -49,7 +64,7 @@ class NFe200(FiscalDocument):
             self._receiver(invoice, company, nfe_environment)
 
             i = 0
-            for inv_line in invoice.invoice_line:
+            for inv_line in invoice.invoice_line_ids:
                 i += 1
                 self.det = self._get_Det()
                 self._details(invoice, inv_line, i)
@@ -100,8 +115,7 @@ class NFe200(FiscalDocument):
         self.nfe.infNFe.ide.cUF.valor = (company.state_id and
                                          company.state_id.ibge_code or '')
         self.nfe.infNFe.ide.cNF.valor = ''
-        self.nfe.infNFe.ide.natOp.valor = (
-            invoice.fiscal_category_id.name[:60] or '')
+        self.nfe.infNFe.ide.natOp.valor = invoice.cfop_ids[0].small_name or ''
         self.nfe.infNFe.ide.indPag.valor = (invoice.payment_term and
                                             invoice.payment_term.indPag or '0')
         self.nfe.infNFe.ide.mod.valor = invoice.fiscal_document_id.code or ''
@@ -117,8 +131,7 @@ class NFe200(FiscalDocument):
         self.nfe.infNFe.ide.tpAmb.valor = nfe_environment
         self.nfe.infNFe.ide.finNFe.valor = invoice.nfe_purpose
         self.nfe.infNFe.ide.procEmi.valor = 0
-        self.nfe.infNFe.ide.verProc.valor = 'Odoo Brasil v8'
-        self.nfe.infNFe.compra.xPed.valor = invoice.name or ''
+        self.nfe.infNFe.ide.verProc.valor = 'OpenERP Brasil v8'
 
         if invoice.cfop_ids[0].type in ("input"):
             self.nfe.infNFe.ide.tpNF.valor = 0
@@ -291,20 +304,13 @@ class NFe200(FiscalDocument):
                 invoice.partner_id.legal_name[:60] or '')
 
             if invoice.partner_id.is_company:
+                self.nfe.infNFe.dest.CNPJ.valor = punctuation_rm(
+                    invoice.partner_id.cnpj_cpf)
                 self.nfe.infNFe.dest.IE.valor = punctuation_rm(
                     invoice.partner_id.inscr_est)
-
-            if invoice.partner_id.country_id.id == \
-                    invoice.company_id.country_id.id:
-                if invoice.partner_id.is_company:
-                    self.nfe.infNFe.dest.CNPJ.valor = punctuation_rm(
-                        invoice.partner_id.cnpj_cpf)
-                else:
-                    self.nfe.infNFe.dest.CPF.valor = punctuation_rm(
-                        invoice.partner_id.cnpj_cpf)
-
-        self.nfe.infNFe.dest.indIEDest.valor = \
-            invoice.partner_id.partner_fiscal_type_id.ind_ie_dest
+            else:
+                self.nfe.infNFe.dest.CPF.valor = punctuation_rm(
+                    invoice.partner_id.cnpj_cpf)
 
         self.nfe.infNFe.dest.enderDest.xLgr.valor = (
             invoice.partner_id.street or '')
@@ -329,29 +335,19 @@ class NFe200(FiscalDocument):
         """Detalhe"""
 
         self.det.nItem.valor = index
-
-        if invoice_line.product_id:
-            self.det.prod.cProd.valor = invoice_line.product_id.code or ''
-            self.det.prod.cEAN.valor = invoice_line.product_id.ean13 or ''
-            self.det.prod.cEANTrib.valor = invoice_line.product_id.ean13 or ''
-            self.det.prod.xProd.valor = (
-                invoice_line.product_id.name[:120] or '')
-        else:
-            self.det.prod.cProd.valor = invoice_line.code or ''
-            self.det.prod.xProd.valor = invoice_line.name[:120] or ''
-
+        self.det.prod.cProd.valor = invoice_line.product_id.code or ''
+        self.det.prod.cEAN.valor = invoice_line.product_id.ean13 or ''
+        self.det.prod.xProd.valor = invoice_line.product_id.name[:120] or ''
         self.det.prod.NCM.valor = punctuation_rm(
             invoice_line.fiscal_classification_id.code or '')[:8]
-        self.det.prod.EXTIPI.valor = punctuation_rm(
-            invoice_line.fiscal_classification_id.code or '')[8:]
-        self.det.prod.CEST.valor = punctuation_rm(
-            invoice_line.cest_id.code or '')
+        self.det.prod.EXTIPI.valor = ''
         self.det.prod.nFCI.valor = invoice_line.fci or ''
         self.det.prod.CFOP.valor = invoice_line.cfop_id.code
         self.det.prod.uCom.valor = invoice_line.uos_id.name or ''
         self.det.prod.qCom.valor = str("%.4f" % invoice_line.quantity)
         self.det.prod.vUnCom.valor = str("%.7f" % invoice_line.price_unit)
         self.det.prod.vProd.valor = str("%.2f" % invoice_line.price_gross)
+        self.det.prod.cEANTrib.valor = invoice_line.product_id.ean13 or ''
         self.det.prod.uTrib.valor = self.det.prod.uCom.valor
         self.det.prod.qTrib.valor = self.det.prod.qCom.valor
         self.det.prod.vUnTrib.valor = self.det.prod.vUnCom.valor
@@ -360,8 +356,6 @@ class NFe200(FiscalDocument):
         self.det.prod.vDesc.valor = str("%.2f" % invoice_line.discount_value)
         self.det.prod.vOutro.valor = str(
             "%.2f" % invoice_line.other_costs_value)
-        self.det.prod.xPed.valor = invoice_line.partner_order or ''
-        self.det.prod.nItemPed.valor = invoice_line.partner_order_line or ''
         self.det.infAdProd.valor = invoice_line.fiscal_comment or ''
 
         #
@@ -390,8 +384,6 @@ class NFe200(FiscalDocument):
                 "%.2f" % invoice_line.icms_percent)
             self.det.imposto.ICMS.vICMS.valor = str(
                 "%.2f" % invoice_line.icms_value)
-            self.det.imposto.ICMS.motDesICMS.valor = (
-                invoice_line.icms_relief_id.code or '')
 
             # ICMS ST
             self.det.imposto.ICMS.modBCST.valor = (
@@ -407,23 +399,6 @@ class NFe200(FiscalDocument):
             self.det.imposto.ICMS.vICMSST.valor = str(
                 "%.2f" % invoice_line.icms_st_value)
 
-            # Informação do ICMS Interestadual nas vendas para consumidor final
-            self.det.imposto.ICMSUFDest.vBCUFDest.valor = str(
-                "%.2f" % invoice_line.icms_dest_base)
-            self.det.imposto.ICMSUFDest.pFCPUFDest.valor = str(
-                "%.2f" % invoice_line.icms_fcp_percent)
-            self.det.imposto.ICMSUFDest.pICMSUFDest.valor = str(
-                "%.2f" % invoice_line.icms_dest_percent)
-            self.det.imposto.ICMSUFDest.pICMSInter.valor = str(
-                "%.2f" % invoice_line.icms_origin_percent)
-            self.det.imposto.ICMSUFDest.pICMSInterPart.valor = str(
-                "%.2f" % invoice_line.icms_part_percent)
-            self.det.imposto.ICMSUFDest.vFCPUFDest.valor = str(
-                "%.2f" % invoice_line.icms_fcp_value)
-            self.det.imposto.ICMSUFDest.vICMSUFDest.valor = str(
-                "%.2f" % invoice_line.icms_dest_value)
-            self.det.imposto.ICMSUFDest.vICMSUFRemet.valor = str(
-                "%.2f" % invoice_line.icms_origin_value)
             # IPI
             self.det.imposto.IPI.CST.valor = invoice_line.ipi_cst_id.code
             if invoice_line.ipi_type == 'percent' or '':
@@ -441,8 +416,6 @@ class NFe200(FiscalDocument):
                         "%.2f" % invoice_line.ipi_percent)
             self.det.imposto.IPI.vIPI.valor = str(
                 "%.2f" % invoice_line.ipi_value)
-            self.det.imposto.IPI.cEnq.valor = str(
-                invoice_line.ipi_guideline_id.code or '999').zfill(3)
 
         else:
             # ISSQN
@@ -594,12 +567,6 @@ class NFe200(FiscalDocument):
             "%.2f" % invoice.icms_base)
         self.nfe.infNFe.total.ICMSTot.vICMS.valor = str(
             "%.2f" % invoice.icms_value)
-        self.nfe.infNFe.total.ICMSTot.vFCPUFDest.valor = str(
-            "%.2f" % invoice.icms_fcp_value)
-        self.nfe.infNFe.total.ICMSTot.vICMSUFDest.valor = str(
-            "%.2f" % invoice.icms_dest_value)
-        self.nfe.infNFe.total.ICMSTot.vICMSUFRemet.valor = str(
-            "%.2f" % invoice.icms_origin_value)
         self.nfe.infNFe.total.ICMSTot.vBCST.valor = str(
             "%.2f" % invoice.icms_st_base)
         self.nfe.infNFe.total.ICMSTot.vST.valor = str(
@@ -727,10 +694,6 @@ class NFe310(NFe200):
             invoice.date_hour_invoice, '%Y-%m-%d %H:%M:%S')
         self.nfe.infNFe.ide.dhSaiEnt.valor = datetime.strptime(
             invoice.date_in_out, '%Y-%m-%d %H:%M:%S')
-        self.aut_xml = self._get_AutXML()
-        self.aut_xml.CNPJ.valor = punctuation_rm(
-            invoice.company_id.accountant_cnpj_cpf)
-        self.nfe.infNFe.autXML.append(self.aut_xml)
 
     def _receiver(self, invoice, company, nfe_environment):
         super(NFe310, self)._receiver(
@@ -740,6 +703,8 @@ class NFe310(NFe200):
                 invoice.company_id.country_id.id:
             self.nfe.infNFe.dest.idEstrangeiro.valor = punctuation_rm(
                 invoice.partner_id.cnpj_cpf)
+            self.nfe.infNFe.dest.CNPJ.valor = None
+            self.nfe.infNFe.dest.CPF.valor = None
 
     def _di(self, invoice_line_di):
         super(NFe310, self)._di(invoice_line_di)
@@ -757,8 +722,7 @@ class NFe310(NFe200):
             invoice.shipping_state_id.code or '')
         self.nfe.infNFe.exporta.xLocExporta.valor = (
             invoice.shipping_location or '')
-        self.nfe.infNFe.exporta.xLocDespacho.valor = (
-            invoice.expedition_location or '')
+        self.nfe.infNFe.exporta.xLocDespacho.valor = ''  # TODO
 
     def get_NFe(self):
         try:
@@ -803,11 +767,3 @@ class NFe310(NFe200):
             raise UserError(
                 _(u'Erro!'), _(u"Biblioteca PySPED não instalada!"))
         return DI_310()
-
-    def _get_AutXML(self):
-        try:
-            from pysped.nfe.leiaute import AutXML_310
-        except ImportError:
-            raise UserError(
-                _(u'Erro!'), _(u"Biblioteca PySPED não instalada!"))
-        return AutXML_310()

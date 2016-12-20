@@ -1,6 +1,21 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013  Renato Lima - Akretion
-# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
+###############################################################################
+#                                                                             #
+# Copyright (C) 2013  Renato Lima - Akretion                                  #
+#                                                                             #
+# This program is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU Affero General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or           #
+# (at your option) any later version.                                         #
+#                                                                             #
+# This program is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
+# GNU Affero General Public License for more details.                         #
+#                                                                             #
+# You should have received a copy of the GNU Affero General Public License    #
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
+###############################################################################
 
 import re
 
@@ -12,18 +27,11 @@ from openerp.addons.l10n_br_base.tools import fiscal
 from openerp.addons.l10n_br_account.models.l10n_br_account import TYPE
 
 PRODUCT_FISCAL_TYPE = [
-    ('product', 'Produto')
+    ('product', 'Produto'),
+    ('service', 'Service')
 ]
 
 PRODUCT_FISCAL_TYPE_DEFAULT = PRODUCT_FISCAL_TYPE[0][0]
-
-NFE_IND_IE_DEST = [
-    ('1', '1 - Contribuinte do ICMS'),
-    ('2', '2 - Contribuinte Isento do ICMS'),
-    ('9', '9 - Não Contribuinte')
-]
-
-NFE_IND_IE_DEST_DEFAULT = NFE_IND_IE_DEST[0][0]
 
 
 class L10nbrAccountCFOP(models.Model):
@@ -65,17 +73,12 @@ class L10nbrAccountCFOP(models.Model):
             recs = self.search([('name', operator, name)] + args, limit=limit)
         return recs.name_get()
 
-    # TODO migrate
-    def name_get(self, cr, uid, ids, context=None):
-        if not len(ids):
-            return []
-        if isinstance(ids, (int, long)):
-            ids = [ids]
-        reads = self.read(cr, uid, ids, ['name', 'code'], context,
-                          load='_classic_write')
-        return [(x['id'], (x['code'] and x['code'] or '') +
-                 (x['name'] and ' - ' + x['name'] or '')) for x in reads]
-
+    @api.multi
+    def name_get(self):
+        res = []
+        for record in self:
+            res.append((record.id, record.code + ' - ' + record.name))
+        return res
 
 class L10nBrAccountServiceType(models.Model):
     _name = 'l10n_br_account.service.type'
@@ -324,94 +327,7 @@ class ImportDeclarationLine(models.Model):
     sequence = fields.Integer(u'Sequência', default=1, required=True)
     name = fields.Char(u'Adição', size=3, required=True)
     manufacturer_code = fields.Char(
-        u'Código do Fabricante', size=60, required=True)
+        u'Código do Fabricante', size=3, required=True)
     amount_discount = fields.Float(u'Valor',
                                    digits=dp.get_precision('Account'),
                                    default=0.00)
-
-
-class L10nBrIcmsRelief(models.Model):
-
-    _name = 'l10n_br_account_product.icms_relief'
-    _description = 'Icms Relief'
-
-    code = fields.Char(u'Código', size=2, required=True)
-    name = fields.Char('Nome', size=256, required=True)
-    active = fields.Boolean('Ativo', default=True)
-
-
-class L10nBrIPIGuideline(models.Model):
-
-    _name = 'l10n_br_account_product.ipi_guideline'
-    _description = 'IPI Guidelines'
-
-    code = fields.Char(u'Código', size=3, required=True)
-    name = fields.Text(u'Descrição Enquadramento Legal do IPI', required=True)
-    cst_group = fields.Selection([('imunidade', u'Imunidade'),
-                                  ('suspensao', u'Suspensão'),
-                                  ('isencao', u'Isenção'),
-                                  ('reducao', u'Redução'),
-                                  ('outros', u'Outros'),
-                                  ], string='Grupo CST', required=True)
-    tax_code_in_id = fields.Many2one(
-        'account.tax.code.template', string=u'CST Entrada')
-    tax_code_out_id = fields.Many2one(
-        'account.tax.code.template', string=u'CST Saída')
-
-
-class L10nBrTaxIcmsPartition(models.Model):
-
-    _name = 'l10n_br_tax.icms_partition'
-    _description = 'Icms Partition'
-
-    date_start = fields.Date(
-        u'Data Inicial',
-        required=True
-    )
-    date_end = fields.Date(
-        u'Data Final',
-        required=True
-    )
-    rate = fields.Float(
-        u'Percentual Interestadual de Rateio',
-        required=True
-    )
-
-
-class L10nBrAccountProductCest(models.Model):
-
-    _name = 'l10n_br_account_product.cest'
-
-    code = fields.Char(
-        u'Código',
-        size=9
-    )
-    name = fields.Char(
-        u'Nome'
-    )
-    segment = fields.Char(
-        u'Segmento',
-        size=32
-    )
-    item = fields.Char(
-        u'Item',
-        size=4
-    )
-
-    @api.model
-    def name_search(self, name, args=None, operator='ilike', limit=100):
-        args = args or []
-        recs = self.browse()
-        if name:
-            recs = self.search([('code', operator, name)] + args, limit=limit)
-        if not recs:
-            recs = self.search([('name', operator, name)] + args, limit=limit)
-        return recs.name_get()
-
-    @api.multi
-    def name_get(self):
-        result = []
-        for cest in self:
-            name = cest.code + ' - ' + cest.name
-            result.append((cest.id, name))
-        return result

@@ -1,6 +1,21 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013  Renato Lima - Akretion
-# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
+###############################################################################
+#                                                                             #
+# Copyright (C) 2013  Renato Lima - Akretion                                  #
+#                                                                             #
+# This program is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU Affero General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or           #
+# (at your option) any later version.                                         #
+#                                                                             #
+# This program is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
+# GNU Affero General Public License for more details.                         #
+#                                                                             #
+# You should have received a copy of the GNU Affero General Public License    #
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
+###############################################################################
 
 from openerp import models, fields
 
@@ -34,23 +49,14 @@ class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
     fiscal_type = fields.Selection(
-        selection_add=PRODUCT_FISCAL_TYPE,
+        PRODUCT_FISCAL_TYPE,
+        'Tipo Fiscal',
+        required=True,
         default=PRODUCT_FISCAL_TYPE_DEFAULT)
 
     origin = fields.Selection(PRODUCT_ORIGIN, 'Origem', default='0')
 
     fci = fields.Char('FCI do Produto', size=36)
 
-    cest_id = fields.Many2one(
-        comodel_name='l10n_br_account_product.cest',
-        string=u'CEST'
-    )
-
     service_type_id = fields.Many2one(
         'l10n_br_account.service.type', u'Tipo de Serviço')
-
-    estd_import_taxes_perct = fields.Float(
-        related='fiscal_classification_id.estd_import_taxes_perct')
-
-    estd_national_taxes_perct = fields.Float(
-        related='fiscal_classification_id.estd_national_taxes_perct')

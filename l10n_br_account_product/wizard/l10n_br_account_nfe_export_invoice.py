@@ -1,7 +1,22 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2009  Renato Lima - Akretion
-# Copyright (C) 2011  Vinicius Dittgen - PROGE, Leonardo Santagada - PROGE
-# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
+###############################################################################
+#                                                                             #
+# Copyright (C) 2009  Renato Lima - Akretion                                  #
+# Copyright (C) 2011  Vinicius Dittgen - PROGE, Leonardo Santagada - PROGE    #
+#                                                                             #
+# This program is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU Affero General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or           #
+# (at your option) any later version.                                         #
+#                                                                             #
+# This program is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
+# GNU Affero General Public License for more details.                         #
+#                                                                             #
+# You should have received a copy of the GNU Affero General Public License    #
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
+###############################################################################
 
 import time
 import base64
@@ -15,24 +30,24 @@ class L10nBrAccountNfeExportInvoice(models.TransientModel):
     _description = 'Export eletronic invoice for Emissor de NFe SEFAZ SP'
 
     def _default_file_type(self):
-        company_id = self.env['res.company']._company_default_get(
+        company = self.env['res.company']._company_default_get(
             'l10n_br_account_product.nfe_export_invoice')
-        return self.env['res.company'].browse(company_id).file_type
+        return company.file_type
 
     def _default_nfe_environment(self):
-        company_id = self.env['res.company']._company_default_get(
+        company = self.env['res.company']._company_default_get(
             'l10n_br_account_product.nfe_export_invoice')
-        return self.env['res.company'].browse(company_id).nfe_environment
+        return company.nfe_environment
 
     def _default_export_folder(self):
-        company_id = self.env['res.company']._company_default_get(
+        company = self.env['res.company']._company_default_get(
             'l10n_br_account_product.nfe_export_invoice')
-        return self.env['res.company'].browse(company_id).export_folder
+        return company.export_folder
 
     def _default_sign_xml(self):
-        company_id = self.env['res.company']._company_default_get(
+        company = self.env['res.company']._company_default_get(
             'l10n_br_account_product.nfe_export_invoice')
-        return self.env['res.company'].browse(company_id).sign_xml
+        return company.sign_xml
 
     name = fields.Char('Nome', size=255)
     file = fields.Binary('Arquivo', readonly=True)
@@ -145,7 +160,7 @@ class L10nBrAccountNfeExportInvoice(models.TransientModel):
                 })
 
             if err_msg:
-                raise UserError(_('Error!'), _("'%s'") % _(err_msg, ))
+                raise UserError(_("'%s'") % _(err_msg, ))
 
             view_rec = self.env['ir.model.data'].get_object_reference(
                 'l10n_br_account_product',

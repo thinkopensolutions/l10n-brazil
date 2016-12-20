@@ -1,11 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013  Renato Lima - Akretion
-# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
+###############################################################################
+#                                                                             #
+# Copyright (C) 2013  Renato Lima - Akretion                                  #
+#                                                                             #
+# This program is free software: you can redistribute it and/or modify        #
+# it under the terms of the GNU Affero General Public License as published by #
+# the Free Software Foundation, either version 3 of the License, or           #
+# (at your option) any later version.                                         #
+#                                                                             #
+# This program is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
+# GNU Affero General Public License for more details.                         #
+#                                                                             #
+# You should have received a copy of the GNU Affero General Public License    #
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
+###############################################################################
 
-import time
+from datetime import datetime
 
-from openerp import models, fields, api
-from openerp.tools import DEFAULT_SERVER_DATE_FORMAT
+from odoo import models, fields, api
 
 
 class AccountPaymentTerm(models.Model):
@@ -20,6 +34,7 @@ class AccountTaxTemplate(models.Model):
     """Implement computation method in taxes"""
     _inherit = 'account.tax.template'
 
+    domain = fields.Char('Domain', size=8)
     icms_base_type = fields.Selection(
         [('0', 'Margem Valor Agregado (%)'), ('1', 'Pauta (valor)'),
          ('2', 'Preço Tabelado Máximo (valor)'),
@@ -49,14 +64,14 @@ class AccountTax(models.Model):
          ('4', 'Margem Valor Agregado (%)'), ('5', 'Pauta (valor)')],
         'Tipo Base ICMS ST', required=True, default='4')
 
-    def _compute_tax(self, cr, uid, taxes, total_line, product, product_qty,
+    def _compute_tax(self, taxes, total_line, product, product_qty,
                      precision, base_tax=0.0):
         result = {'tax_discount': 0.0, 'taxes': []}
 
         for tax in taxes:
             if tax.get('type') == 'weight' and product:
-                product_read = self.pool.get('product.product').read(
-                    cr, uid, product, ['weight_net'])
+                product_read = self.env['product.product'].read(
+                   product, ['weight_net'])
                 tax['amount'] = round((product_qty * product_read.get(
                     'weight_net', 0.0)) * tax['percent'], precision)
 
@@ -85,16 +100,20 @@ class AccountTax(models.Model):
         result['taxes'] = taxes
         return result
 
-    # TODO
+
+    #TODO
+    #TODO MIG V10
     # Refatorar este método, para ficar mais simples e não repetir
     # o que esta sendo feito no método l10n_br_account_product
-    @api.v7
-    def compute_all(self, cr, uid, taxes, price_unit, quantity,
-                    product=None, partner=None, force_excluded=False,
-                    fiscal_position=False, insurance_value=0.0,
-                    freight_value=0.0, other_costs_value=0.0, base_tax=0.0):
+    @api.multi
+    def compute_all(self, price_unit, currency=None, quantity=1.0, product=None, partner=None,
+                    force_excluded=False, fiscal_position=False,
+                    insurance_value=0.0, freight_value=0.0,
+                    other_costs_value=0.0, base_tax=0.00):
         """Compute taxes
+
         Returns a dict of the form::
+
         {
             'total': Total without taxes,
             'total_included': Total with taxes,
@@ -102,38 +121,30 @@ class AccountTax(models.Model):
             'taxes': <list of taxes, objects>,
             'total_base': Total Base by tax,
         }
-        :Parameters:
-            - 'cr': Database cursor.
-            - 'uid': Current user.
-            - 'taxes': List with all taxes id.
-            - 'price_unit': Product price unit.
-            - 'quantity': Product quantity.
-            - 'force_excluded': Used to say that we don't want to consider
-                                the value of field price_include of tax.
-                                It's used in encoding by line where you don't
-                                matter if you encoded a tax with that boolean
-                                to True or False.
         """
-        obj_precision = self.pool.get('decimal.precision')
-        precision = obj_precision.precision_get(cr, uid, 'Account')
-        result = super(AccountTax, self).compute_all(cr, uid, taxes,
-                                                     price_unit, quantity,
-                                                     product, partner,
-                                                     force_excluded)
+        if len(self) == 0:
+            company_id = self.env.user.company_id
+        else:
+            company_id = self[0].company_id
+        if not currency:
+            currency = company_id.currency_id
+        obj_precision = self.env['decimal.precision']
+        precision = obj_precision.precision_get('Account')
+        result = super(AccountTax, self).compute_all(price_unit, currency=currency, quantity=quantity, product=product, partner=partner)
         totaldc = icms_value = 0.0
         ipi_value = 0.0
         calculed_taxes = []
 
         for tax in result['taxes']:
-            tax_list = [tx for tx in taxes if tx.id == tax['id']]
+            tax_list = [tx for tx in self if tx.id == tax['id']]
             if tax_list:
                 tax_brw = tax_list[0]
             tax['domain'] = tax_brw.domain
-            tax['type'] = tax_brw.type
+            tax['type'] = tax_brw.amount_type
             tax['percent'] = tax_brw.amount
             tax['base_reduction'] = tax_brw.base_reduction
             tax['amount_mva'] = tax_brw.amount_mva
-            tax['tax_discount'] = tax_brw.base_code_id.tax_discount
+            tax['tax_discount'] = tax_brw.tax_discount
 
             if tax.get('domain') == 'icms':
                 tax['icms_base_type'] = tax_brw.icms_base_type
@@ -142,16 +153,15 @@ class AccountTax(models.Model):
                 tax['icms_st_base_type'] = tax_brw.icms_st_base_type
 
         common_taxes = [tx for tx in result['taxes'] if tx[
-            'domain'] not in ['icms', 'icmsst', 'ipi', 'icmsinter',
-                              'icmsfcp']]
-        result_tax = self._compute_tax(cr, uid, common_taxes, result['total'],
+            'domain'] not in ['icms', 'icmsst', 'ipi']]
+        result_tax = self._compute_tax(common_taxes, result['total_excluded'],
                                        product, quantity, precision, base_tax)
         totaldc += result_tax['tax_discount']
         calculed_taxes += result_tax['taxes']
 
         # Calcula o IPI
         specific_ipi = [tx for tx in result['taxes'] if tx['domain'] == 'ipi']
-        result_ipi = self._compute_tax(cr, uid, specific_ipi, result['total'],
+        result_ipi = self._compute_tax(specific_ipi,result['total_excluded'],
                                        product, quantity, precision, base_tax)
         totaldc += result_ipi['tax_discount']
         calculed_taxes += result_ipi['taxes']
@@ -161,18 +171,14 @@ class AccountTax(models.Model):
         # Calcula ICMS
         specific_icms = [tx for tx in result['taxes']
                          if tx['domain'] == 'icms']
-
-        # Adiciona frete seguro e outras despesas na base do ICMS
-        total_base = (result['total'] + insurance_value +
-                      freight_value + other_costs_value)
-
-        # Em caso de operação de ativo adiciona o IPI na base de ICMS
         if fiscal_position and fiscal_position.asset_operation:
-            total_base += ipi_value
+            total_base =result['total_excluded'] + insurance_value + \
+                freight_value + other_costs_value + ipi_value
+        else:
+            total_base =result['total_excluded'] + insurance_value + \
+                freight_value + other_costs_value
 
         result_icms = self._compute_tax(
-            cr,
-            uid,
             specific_icms,
             total_base,
             product,
@@ -184,92 +190,23 @@ class AccountTax(models.Model):
         if result_icms['taxes']:
             icms_value = result_icms['taxes'][0]['amount']
 
-        # Calcula a FCP
-        specific_fcp = [tx for tx in result['taxes']
-                        if tx['domain'] == 'icmsfcp']
-        result_fcp = self._compute_tax(cr, uid, specific_fcp, total_base,
-                                       product, quantity, precision, base_tax)
-        totaldc += result_fcp['tax_discount']
-        calculed_taxes += result_fcp['taxes']
-
-        # Calcula ICMS Interestadual (DIFAL)
-        specific_icms_inter = [tx for tx in result['taxes']
-                               if tx['domain'] == 'icmsinter']
-        result_icms_inter = self._compute_tax(
-            cr,
-            uid,
-            specific_icms_inter,
-            total_base,
-            product,
-            quantity,
-            precision,
-            base_tax)
-
-        if (specific_icms_inter and fiscal_position and
-                partner.partner_fiscal_type_id.ind_ie_dest == '9'):
-            if fiscal_position.cfop_id.id_dest == '2':
-
-                # Calcula o DIFAL total
-                result_icms_inter['taxes'][0]['amount'] = round(
-                    abs(specific_icms_inter[0]['amount'] -
-                        icms_value), precision
-                )
-
-                # Cria uma chave com o ICMS de intraestadual
-                result_icms_inter['taxes'][0]['icms_origin_percent'] = \
-                    specific_icms[0]['percent']
-
-                # Procura o percentual de partilha vigente
-                icms_partition_ids = self.pool.get(
-                    'l10n_br_tax.icms_partition').search(
-                        cr, uid,
-                        [('date_start', '<=',
-                          time.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-                         ('date_end', '>=',
-                          time.strftime(DEFAULT_SERVER_DATE_FORMAT))])
-
-                # Calcula o difal de origin e destino
-                if icms_partition_ids:
-                    icms_partition = self.pool.get(
-                        'l10n_br_tax.icms_partition').browse(
-                            cr, uid, icms_partition_ids[0])
-                    result_icms_inter['taxes'][0]['icms_part_percent'] = \
-                        icms_partition.rate / 100
-
-                    result_icms_inter['taxes'][0]['icms_dest_value'] = \
-                        round(
-                            result_icms_inter['taxes'][0]['amount'] *
-                            (icms_partition.rate / 100),
-                            precision)
-                    result_icms_inter['taxes'][0]['icms_origin_value'] = \
-                        round(
-                            result_icms_inter['taxes'][0]['amount'] *
-                            ((100 - icms_partition.rate) / 100),
-                            precision)
-
-                # Atualiza o imposto icmsinter
-                result_icms_inter['tax_discount'] = \
-                    result_icms_inter['taxes'][0]['amount']
-                totaldc += result_icms_inter['tax_discount']
-                calculed_taxes += result_icms_inter['taxes']
-
         # Calcula ICMS ST
         specific_icmsst = [tx for tx in result['taxes']
                            if tx['domain'] == 'icmsst']
-        result_icmsst = self._compute_tax(cr, uid, specific_icmsst,
-                                          result['total'], product,
+        result_icmsst = self._compute_tax(specific_icmsst,
+                                         result['total_excluded'], product,
                                           quantity, precision, base_tax)
         totaldc += result_icmsst['tax_discount']
         if result_icmsst['taxes']:
             icms_st_percent = result_icmsst['taxes'][0]['percent']
             icms_st_percent_reduction = result_icmsst[
                 'taxes'][0]['base_reduction']
-            icms_st_base = round(((result['total'] + ipi_value) *
+            icms_st_base = round(((result['total_excluded'] + ipi_value) *
                                  (1 - icms_st_percent_reduction)) *
                                  (1 + result_icmsst['taxes'][0]['amount_mva']),
                                  precision)
             icms_st_base_other = round(
-                ((result['total'] + ipi_value) * (
+                ((result['total_excluded'] + ipi_value) * (
                     1 + result_icmsst['taxes'][0]['amount_mva'])),
                 precision) - icms_st_base
             result_icmsst['taxes'][0]['total_base'] = icms_st_base
@@ -286,31 +223,38 @@ class AccountTax(models.Model):
 
         # Estimate Taxes
         if fiscal_position and fiscal_position.asset_operation:
-            if product.origin in ('1', '2', '6', '7'):
+            obj_tax_estimate = self.env['l10n_br_tax.estimate']
+            date = datetime.now().strftime('%Y-%m-%d')
+            tax_estimate_ids = obj_tax_estimate.search(
+                cr, uid, [('fiscal_classification_id', '=',
+                           product.fiscal_classification_id.id),
+                          '|', ('date_start', '=', False),
+                          ('date_start', '<=', date),
+                          '|', ('date_end', '=', False),
+                          ('date_end', '>=', date),
+                          ('active', '=', True)])
+
+            if tax_estimate_ids:
+                tax_estimate = obj_tax_estimate.browse(
+                    tax_estimate_ids)[0]
+                tax_estimate_percent = 0.00
+                if product.origin in ('1', '2', '6', '7'):
+                    tax_estimate_percent += tax_estimate.federal_taxes_import
+                else:
+                    tax_estimate_percent += tax_estimate.federal_taxes_national
+
+                tax_estimate_percent += tax_estimate.state_taxes
+                tax_estimate_percent /= 100
                 total_taxes = ((result['total_included'] - totaldc) *
-                               product.estd_import_taxes_perct/100)
-            else:
-                total_taxes = ((result['total_included'] - totaldc) *
-                               product.estd_national_taxes_perct/100)
-            result['total_taxes'] = round(total_taxes, precision)
+                               tax_estimate_percent)
+                result['total_taxes'] = round(total_taxes, precision)
 
         return {
-            'total': result['total'],
+            'total': result['total_excluded'],
             'total_included': result.get('total_included', 0.00),
             'total_tax_discount': totaldc,
             'taxes': calculed_taxes,
             'total_taxes': result.get('total_taxes', 0.00),
         }
 
-    @api.v8
-    def compute_all(self, price_unit, quantity, product=None, partner=None,
-                    force_excluded=False, fiscal_position=False,
-                    insurance_value=0.0, freight_value=0.0,
-                    other_costs_value=0.0, base_tax=0.00):
-        return self._model.compute_all(
-            self._cr, self._uid, self, price_unit, quantity,
-            product=product, partner=partner,
-            force_excluded=force_excluded,
-            fiscal_position=fiscal_position, insurance_value=insurance_value,
-            freight_value=freight_value, other_costs_value=other_costs_value,
-            base_tax=base_tax)
+
