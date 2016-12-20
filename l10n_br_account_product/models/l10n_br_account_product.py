@@ -4,12 +4,12 @@
 
 import re
 
-from openerp import models, fields, api, _
-from openerp.exceptions import Warning as UserError
-from openerp.addons import decimal_precision as dp
+from odoo import models, fields, api, _
+from odoo.exceptions import Warning as UserError
+from odoo.addons import decimal_precision as dp
 
-from openerp.addons.l10n_br_base.tools import fiscal
-from openerp.addons.l10n_br_account.models.l10n_br_account import TYPE
+from odoo.addons.l10n_br_base.tools import fiscal
+from odoo.addons.l10n_br_account.models.l10n_br_account import TYPE
 
 PRODUCT_FISCAL_TYPE = [
     ('product', 'Produto'),
@@ -152,7 +152,7 @@ class L10nbrAccountDocumentRelated(models.Model):
         if self.inscr_est or self.inscr_est != 'ISENTO':
             uf = self.state_id and self.state_id.code.lower() or ''
             try:
-                mod = __import__('openerp.addons.l10n_br_base.tools.fiscal',
+                mod = __import__('odoo.addons.l10n_br_base.tools.fiscal',
                                  globals(), locals(), 'fiscal')
 
                 validate = getattr(mod, 'validate_ie_%s' % uf)

@@ -125,7 +125,7 @@
   Check Invoice Line from SP to RS fiscal contributor
 -
   !python {model: account.invoice}: |
-    from openerp.tools import float_compare
+    from odoo.tools import float_compare
 
     invoice = self.browse(cr, uid, ref('account_invoice_customer_sp_rs'), context=context)
 
@@ -202,7 +202,7 @@
 -
   !python {model: account.invoice}: |
 
-    from openerp.tools import float_compare
+    from odoo.tools import float_compare
 
     invoice = self.browse(cr, uid, ref('account_invoice_customer_sp_rs'), context=context)
 

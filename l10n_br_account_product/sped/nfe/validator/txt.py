@@ -17,9 +17,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.       #
 ###############################################################################
 
-#from openerp import pooler
-from openerp.exceptions import Warning as UserError
-from openerp.tools.translate import _
+#from odoo import pooler
+from odoo.exceptions import Warning as UserError
+from odoo.tools.translate import _
 
 # TODO migrate
 

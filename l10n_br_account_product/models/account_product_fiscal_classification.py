@@ -2,10 +2,10 @@
 # Copyright (C) 2009 - TODAY Renato Lima - Akretion
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
-from openerp import models, fields, api
-from openerp.addons import decimal_precision as dp
+from odoo import models, fields, api
+from odoo.addons import decimal_precision as dp
 
-from openerp.addons.l10n_br_account.models.l10n_br_account import (
+from odoo.addons.l10n_br_account.models.l10n_br_account import (
     L10nBrTaxDefinition,
     L10nBrTaxDefinitionTemplate
 )

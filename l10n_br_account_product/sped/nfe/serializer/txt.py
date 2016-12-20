@@ -20,9 +20,9 @@
 from datetime import datetime
 from unicodedata import normalize
 import pytz
-from openerp import SUPERUSER_ID
-#from openerp import pooler
-from openerp.addons.l10n_br_base.tools.misc import punctuation_rm
+from odoo import SUPERUSER_ID
+#from odoo import pooler
+from odoo.addons.l10n_br_base.tools.misc import punctuation_rm
 
 
 def nfe_export(cr, uid, ids, nfe_environment='1',

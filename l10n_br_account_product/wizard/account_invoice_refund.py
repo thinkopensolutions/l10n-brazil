@@ -4,10 +4,10 @@
 
 from lxml import etree
 
-from openerp import models, fields, api, _
-from openerp.exceptions import Warning as UserError
+from odoo import models, fields, api, _
+from odoo.exceptions import Warning as UserError
 
-from openerp.addons.l10n_br_account.models.account_invoice import (
+from odoo.addons.l10n_br_account.models.account_invoice import (
     OPERATION_TYPE,
     JOURNAL_TYPE)
 

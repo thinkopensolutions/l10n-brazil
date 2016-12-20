@@ -4,8 +4,8 @@
 
 import time
 import base64
-from openerp import models, fields, api, _
-from openerp.exceptions import Warning as UserError
+from odoo import models, fields, api, _
+from odoo.exceptions import Warning as UserError
 
 
 class L10nBrAccountNfeExportInvoice(models.TransientModel):
@@ -122,7 +122,7 @@ class L10nBrAccountNfeExportInvoice(models.TransientModel):
                                          data.file_type)
 
                 mod_serializer = __import__(
-                    ('openerp.addons.l10n_br_account_product'
+                    ('odoo.addons.l10n_br_account_product'
                      '.sped.nfe.serializer.') +
                     data.file_type, globals(), locals(), data.file_type)
 

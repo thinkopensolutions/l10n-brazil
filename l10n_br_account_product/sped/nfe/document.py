@@ -19,12 +19,12 @@
 
 from datetime import datetime
 
-#from openerp import pooler
-from openerp.exceptions import Warning as UserError
-from openerp.tools.translate import _
+#from odoo import pooler
+from odoo.exceptions import Warning as UserError
+from odoo.tools.translate import _
 
-from openerp.addons.l10n_br_account.sped.document import FiscalDocument
-from openerp.addons.l10n_br_base.tools.misc import punctuation_rm
+from odoo.addons.l10n_br_account.sped.document import FiscalDocument
+from odoo.addons.l10n_br_base.tools.misc import punctuation_rm
 
 
 class NFe200(FiscalDocument):
@@ -131,7 +131,7 @@ class NFe200(FiscalDocument):
         self.nfe.infNFe.ide.tpAmb.valor = nfe_environment
         self.nfe.infNFe.ide.finNFe.valor = invoice.nfe_purpose
         self.nfe.infNFe.ide.procEmi.valor = 0
-        self.nfe.infNFe.ide.verProc.valor = 'OpenERP Brasil v8'
+        self.nfe.infNFe.ide.verProc.valor = 'odoo Brasil v8'
 
         if invoice.cfop_ids[0].type in ("input"):
             self.nfe.infNFe.ide.tpNF.valor = 0

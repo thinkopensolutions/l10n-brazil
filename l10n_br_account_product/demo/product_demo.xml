@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<odoo>
 	<data>
 		<record id="1_tax_template_out_icms_interno18" model="account.tax">
 			<field name="description">ICMS Interno Saída 18%</field>
@@ -692,4 +692,4 @@
 		</record>
 
 	</data>
-</openerp>
+</odoo>
