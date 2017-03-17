@@ -3,6 +3,7 @@
 	<data>
 
 		<menuitem id="menu_l10n_br_account" icon="terp-crm" name="Localização Brasil"/>
+		<menuitem id="menu_fiscal_document" name="Documentos Fiscais" parent="menu_l10n_br_account" sequence="10"/>
 		<menuitem id="menu_l10n_br_account_fiscal" name="Fiscal" parent="menu_l10n_br_account" sequence="0"/>
 		<menuitem id="menu_l10n_br_account_configuration" name="Configuração" parent="menu_l10n_br_account" sequence="99"/>
 		<menuitem id="menu_l10n_br_account_configuration_fiscal" name="Fiscal" parent="menu_l10n_br_account_configuration" sequence="0"/>
@@ -14,7 +15,6 @@
 				<form string="Cancelar Documento Eletrônico" version="7.0">
 					<header>
 						<button name="action_draft_done" states="draft" colspan="2" string="Confirmar" type="object" icon="gtk-convert"/>
-						<field name="state" widget="statusbar" statusbar_visible="draft,done"/>
 					</header>
 					<group>
 						<field name="invoice_id"/>
@@ -47,7 +47,6 @@
 				<tree string="Cancelar Documento Eletrônico">										
 					<field name="invoice_id"/>
 					<field name="justificative"/>
-					<field name="state"/>
 				</tree>
 			</field>
 		</record>
