@@ -43,3 +43,4 @@ class ResCompany(models.Model):
         domain="[('parent_id', '=', False)]")
     ipbt_token = fields.Char(string=u'IPBT Token')
     ibpt_update_days = fields.Integer(string=u'IPBT Token')
+    fiscal_comment = fields.Text(u'Observação Fiscal')
