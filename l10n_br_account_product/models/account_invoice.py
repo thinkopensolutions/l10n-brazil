@@ -8,6 +8,7 @@ from openerp import models, fields, api, _, tools
 from openerp.addons import decimal_precision as dp
 from openerp.exceptions import (RedirectWarning,
                                 ValidationError,
+                                Warning as UserError)
 
 from openerp.addons.l10n_br_account.models.account_invoice import (
     OPERATION_TYPE,
@@ -1349,30 +1350,9 @@ class AccountInvoiceLine(models.Model):
                   'insurance_value',
                   'freight_value',
                   'other_costs_value')
+
     def onchange_fiscal(self):
         ctx = dict(self.env.context)
-        kwargs = {
-            'company_id': company_id,
-            'partner_id': partner_id,
-            'product_id': product_id,
-            'partner_invoice_id': partner_id,
-            'fiscal_category_id': fiscal_category_id,
-            'context': ctx
-        }
-        result.update(self._fiscal_position_map(result, **kwargs))
-        fiscal_position = ctx.get('fiscal_position', False)
-        if fiscal_position:
-            fiscal_positions = result['value'].get('fiscal_positions',[])
-            if fiscal_position in fiscal_positions:
-                result['value']['fiscal_position'] = fiscal_position
-        return result
-
-    @api.multi
-    def onchange_invoice_line_tax_id(self, product_id, partner_id,
-                                     invoice_line_tax_id, quantity,
-                                     price_unit, discount,
-                                     fiscal_position, insurance_value,
-                                     freight_value, other_costs_value):
         if self.invoice_id.type in ('out_invoice', 'out_refund'):
             ctx.update({'type_tax_use': 'sale'})
         else:
