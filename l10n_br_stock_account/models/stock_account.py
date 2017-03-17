@@ -52,7 +52,8 @@ class StockPicking(models.Model):
         comment = ''
         if picking.fiscal_position.inv_copy_note:
             comment += picking.fiscal_position.note or ''
-
+        if picking.sale_id and picking.sale_id.copy_note:
+            comment += picking.sale_id.note or ''
         if picking.note:
             comment += ' - ' + picking.note
 
@@ -67,8 +68,8 @@ class StockPicking(models.Model):
             result['nfe_purpose'] = '4'
 
         vals.update(result)
-        return super(StockPicking, self)._create_invoice_from_picking(
-            picking, vals)
+        return super(StockPicking, self)._create_invoice_from_picking(picking,
+                                                                      vals)
 
 
 class StockMove(models.Model):
@@ -178,13 +179,18 @@ class StockMove(models.Model):
         # TODO este código é um fix pq no core nao se copia os impostos
         ctx = dict(self.env.context)
         ctx['fiscal_type'] = move.product_id.fiscal_type
+        ctx['partner_id'] = partner.id
+
+        # Required to compute_all in account.invoice.line
+        result['partner_id'] = partner.id
+
         ctx['product_id'] = move.product_id.id
 
         if inv_type in ('out_invoice', 'in_refund'):
             ctx['type_tax_use'] = 'sale'
             taxes = move.product_id.taxes_id
         else:
-            ctx['type_tax_use'] = 'sale'
+            ctx['type_tax_use'] = 'purchase'
             taxes = move.product_id.supplier_taxes_id
 
         if fiscal_position:

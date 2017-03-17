@@ -127,23 +127,8 @@ class ResPartner(models.Model):
             if not result:
                 raise ValidationError(u"{} Invalido!".format(document))
 
-    def _validate_ie_param(self, uf, inscr_est):
-        result = True
-        try:
-            mod = __import__(
-                'openerp.addons.l10n_br_base.tools.fiscal',
-                globals(), locals(), 'fiscal')
-
-            validate = getattr(mod, 'validate_ie_%s' % uf)
-            if not validate(inscr_est):
-                result = False
-        except AttributeError:
-            if not fiscal.validate_ie_param(uf, inscr_est):
-                result = False
-        return result
-
     @api.multi
-    @api.constrains('inscr_est')
+    @api.constrains('inscr_est', 'state_id')
     def _check_ie(self):
         """Checks if company register number in field insc_est is valid,
         this method call others methods because this validation is State wise
@@ -152,13 +137,14 @@ class ResPartner(models.Model):
 
         :Parameters:
         """
-        result = True
-        if self.inscr_est and self.is_company:
-            state_code = self.state_id.code or ''
-            uf = state_code.lower()
-            result = self._validate_ie_param(uf, self.inscr_est)
-        if not result:
-            raise ValidationError(u"Inscrição Estadual Invalida!")
+        for record in self:
+            result = True
+            if record.inscr_est and record.is_company and record.state_id:
+                state_code = record.state_id.code or ''
+                uf = state_code.lower()
+                result = fiscal.validate_ie(uf, record.inscr_est)
+            if not result:
+                raise ValidationError(u"Inscrição Estadual Invalida!")
 
     @api.onchange('cnpj_cpf', 'country_id')
     def _onchange_cnpj_cpf(self):

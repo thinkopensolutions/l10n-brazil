@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013  Renato Lima - Akretion                                  #
+# Copyright (C) 2013  Renato Lima - Akretion
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 import re
@@ -356,3 +356,61 @@ class L10nBrIPIGuideline(models.Model):
         'account.tax.code.template', string=u'CST Entrada')
     tax_code_out_id = fields.Many2one(
         'account.tax.code.template', string=u'CST Saída')
+
+
+class L10nBrTaxIcmsPartition(models.Model):
+
+    _name = 'l10n_br_tax.icms_partition'
+    _description = 'Icms Partition'
+
+    date_start = fields.Date(
+        u'Data Inicial',
+        required=True
+    )
+    date_end = fields.Date(
+        u'Data Final',
+        required=True
+    )
+    rate = fields.Float(
+        u'Percentual Interestadual de Rateio',
+        required=True
+    )
+
+
+class L10nBrAccountProductCest(models.Model):
+
+    _name = 'l10n_br_account_product.cest'
+
+    code = fields.Char(
+        u'Código',
+        size=9
+    )
+    name = fields.Char(
+        u'Nome'
+    )
+    segment = fields.Char(
+        u'Segmento',
+        size=32
+    )
+    item = fields.Char(
+        u'Item',
+        size=4
+    )
+
+    @api.model
+    def name_search(self, name, args=None, operator='ilike', limit=100):
+        args = args or []
+        recs = self.browse()
+        if name:
+            recs = self.search([('code', operator, name)] + args, limit=limit)
+        if not recs:
+            recs = self.search([('name', operator, name)] + args, limit=limit)
+        return recs.name_get()
+
+    @api.multi
+    def name_get(self):
+        result = []
+        for cest in self:
+            name = cest.code + ' - ' + cest.name
+            result.append((cest.id, name))
+        return result

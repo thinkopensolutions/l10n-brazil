@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2009 - TODAY Renato Lima - Akretion                           #
+# Copyright (C) 2009 - TODAY Renato Lima - Akretion
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 from lxml import etree
@@ -92,6 +92,13 @@ class AccountInvoice(models.Model):
         'Série NF Entrada', size=12, readonly=True,
         states={'draft': [('readonly', False)]},
         help=u"Série do número da Nota Fiscal do Fornecedor")
+    state = fields.Selection(
+        selection_add=[
+            ('sefaz_export', 'Enviar para Receita'),
+            ('sefaz_exception', u'Erro de autorização da Receita'),
+            ('sefaz_cancelled', 'Cancelado no Sefaz'),
+            ('sefaz_denied', 'Denegada no Sefaz'),
+        ])
     move_line_receivable_id = fields.Many2many(
         'account.move.line', string='Receivables',
         compute='_compute_receivables')
@@ -99,22 +106,25 @@ class AccountInvoice(models.Model):
         'l10n_br_account.document.serie', string=u'Série',
         domain="[('fiscal_document_id', '=', fiscal_document_id),\
         ('company_id','=',company_id)]", readonly=True,
-        states={'draft': [('readonly', False)]},
-        default=_default_fiscal_document_serie)
+        states={'draft': [('readonly', False)]})
     fiscal_document_id = fields.Many2one(
         'l10n_br_account.fiscal.document', string='Documento', readonly=True,
-        states={'draft': [('readonly', False)]},
-        default=_default_fiscal_document)
+        states={'draft': [('readonly', False)]})
     fiscal_document_electronic = fields.Boolean(
         related='fiscal_document_id.electronic', type='boolean', readonly=True,
         store=True, string='Electronic')
+    fiscal_document_code = fields.Char(
+        related='fiscal_document_id.code',
+        readonly=True,
+        store=True,
+        string='Document Code')
     fiscal_category_id = fields.Many2one(
         'l10n_br_account.fiscal.category', 'Categoria Fiscal',
         readonly=True, states={'draft': [('readonly', False)]})
     fiscal_position = fields.Many2one(
         'account.fiscal.position', 'Fiscal Position', readonly=True,
         states={'draft': [('readonly', False)]},
-        domain="[('fiscal_category_id','=',fiscal_category_id)]")
+    )
     account_document_event_ids = fields.One2many(
         'l10n_br_account.document_event', 'document_event_ids',
         u'Eventos')
@@ -241,6 +251,14 @@ class AccountInvoice(models.Model):
             if len(invoices) > 1:
                 raise UserError(u'Não é possível registrar documentos\
                               fiscais com números repetidos.')
+
+    @api.multi
+    def name_get(self):
+        lista = []
+        for obj in self:
+            name = obj.internal_number if obj.internal_number else ''
+            lista.append((obj.id, name))
+        return lista
 
     _sql_constraints = [
         ('number_uniq', 'unique(number, company_id, journal_id,\
@@ -384,12 +402,15 @@ class AccountInvoice(models.Model):
         move_lines = super(
             AccountInvoice, self).finalize_invoice_move_lines(move_lines)
         count = 1
+        total = len([x for x in move_lines
+                     if x[2]['account_id'] == self.account_id.id])
+        number = self.name or self.number
         result = []
         for move_line in move_lines:
             if move_line[2]['debit'] or move_line[2]['credit']:
                 if move_line[2]['account_id'] == self.account_id.id:
-                    move_line[2]['name'] = '%s/%s' % \
-                        (self.internal_number, count)
+                    move_line[2]['name'] = '%s/%s-%s' % \
+                        (number, count, total)
                     count += 1
                 result.append(move_line)
         # set tax_code_id False in invoice lines
@@ -398,29 +419,8 @@ class AccountInvoice(models.Model):
                 move_line[2].update({'tax_code_id': False}) 
         return result
 
-    def _fiscal_position_map(self, result, **kwargs):
-        ctx = dict(self._context)
-        ctx.update({'use_domain': ('use_invoice', '=', True)})
-        if ctx.get('fiscal_category_id'):
-            kwargs['fiscal_category_id'] = ctx.get('fiscal_category_id')
-
-        if not kwargs.get('fiscal_category_id'):
-            return result
-
-        company = self.env['res.company'].browse(kwargs.get('company_id'))
-
-        fcategory = self.env['l10n_br_account.fiscal.category'].browse(
-            kwargs.get('fiscal_category_id'))
-        result['value']['journal_id'] = fcategory.property_journal.id
-        if not result['value'].get('journal_id', False):
-            raise except_orm(
-                _('Nenhum Diário !'),
-                _("Categoria fiscal: '%s', não tem um diário contábil para a \
-                empresa %s") % (fcategory.name, company.name))
-        return self.env['account.fiscal.position.rule'].with_context(
-            ctx).apply_fiscal_mapping(result, **kwargs)
-
     @api.multi
+
     def onchange_fiscal_category_id(self, partner_address_id,
                                     partner_id, company_id,
                                     fiscal_category_id):
@@ -438,6 +438,24 @@ class AccountInvoice(models.Model):
             [('fiscal_document_id', '=', self.fiscal_document_id.id)], order='priority asc')
         if len(series):
             self.document_serie_id = series[0]
+
+    def open_fiscal_document(self):
+        ctx = self.env.context.copy()
+        ctx.update({
+            'fiscal_document_code': self.fiscal_document_code,
+            'type': self.type
+        })
+        return {
+            'name': _('Documento Fiscal'),
+            'view_type': 'form',
+            'view_mode': 'form',
+            'res_model': 'account.invoice',
+            'context': ctx,
+            'type': 'ir.actions.act_window',
+            'nodestroy': True,
+            'res_id': self.id
+        }
+
 
 
 class AccountInvoiceLine(models.Model):
@@ -496,7 +514,7 @@ class AccountInvoiceLine(models.Model):
         'l10n_br_account.fiscal.category', 'Categoria Fiscal')
     fiscal_position = fields.Many2one(
         'account.fiscal.position', u'Posição Fiscal',
-        domain="[('fiscal_category_id', '=', fiscal_category_id)]")
+    )
     price_tax_discount = fields.Float(
         string='Price Tax discount', store=True,
         digits=dp.get_precision('Account'),
@@ -571,3 +589,13 @@ class AccountInvoiceLine(models.Model):
     #     res = super(AccountInvoiceLine, self).move_line_get_item(line)
     #     res['price'] = line.price_tax_discount
     #     return res
+    @api.model
+    def move_line_get_item(self, line):
+        """
+            Overrrite core to fix invoice total account.move
+        :param line:
+        :return:
+        """
+        res = super(AccountInvoiceLine, self).move_line_get_item(line)
+        res['price'] = line.price_tax_discount
+        return res

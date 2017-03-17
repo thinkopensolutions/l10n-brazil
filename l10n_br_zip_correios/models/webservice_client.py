@@ -7,8 +7,19 @@
 import logging
 from openerp.exceptions import Warning as UserError
 from openerp.tools.translate import _
-from suds import WebFault
-from suds.client import Client, TransportError
+
+try:
+    from suds import WebFault
+    from suds.client import Client, TransportError
+except ImportError:
+    raise UserError(_(u'Erro!'), _(u"Biblioteca Suds não instalada!"))
+
+try:
+    # to pip install suds (version: 0.4)
+    from suds.client import TransportError
+except ImportError as ex:
+    # to apt-get install python-suds (version: 0.7~git20150727.94664dd-3)
+    from suds.transport import TransportError
 
 _logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2013  Renato Lima - Akretion                                  #
+# Copyright (C) 2013  Renato Lima - Akretion
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 from openerp import models, fields
@@ -41,7 +41,17 @@ class ProductTemplate(models.Model):
 
     fci = fields.Char('FCI do Produto', size=36)
 
+    cest_id = fields.Many2one(
+        comodel_name='l10n_br_account_product.cest',
+        string=u'CEST'
+    )
+
     service_type_id = fields.Many2one(
         'l10n_br_account.service.type', u'Tipo de Serviço')
 
     fiscal_document_desc  = fields.Char(string='Fiscal Document Description',size=120)
+    estd_import_taxes_perct = fields.Float(
+        related='fiscal_classification_id.estd_import_taxes_perct')
+
+    estd_national_taxes_perct = fields.Float(
+        related='fiscal_classification_id.estd_national_taxes_perct')

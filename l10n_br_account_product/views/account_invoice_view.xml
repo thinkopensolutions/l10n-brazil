@@ -2,7 +2,9 @@
 <openerp>
 	<data>
 
-		<record id="l10n_br_account_product_invoice_form" model="ir.ui.view">
+
+        <!-- Customer view -->
+        <record id="l10n_br_account_product_invoice_form" model="ir.ui.view">
 			<field name="name">l10n_br_account_product.invoice.form</field>
 			<field name="model">account.invoice</field>
 			<field name="inherit_id" ref="account.invoice_form"/>
@@ -555,5 +557,4 @@
 		</record>
 
 	</data>
-
 </openerp>

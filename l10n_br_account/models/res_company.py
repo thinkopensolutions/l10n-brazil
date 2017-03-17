@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2009 - TODAY Renato Lima - Akretion                           #
+# Copyright (C) 2009 - TODAY Renato Lima - Akretion
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 from openerp import models, fields
@@ -41,5 +41,5 @@ class ResCompany(models.Model):
     fiscal_rule_parent_id = fields.Many2one(
         'account.fiscal.position.rule', u'Conjunto de Regras Fiscais',
         domain="[('parent_id', '=', False)]")
-    ipbt_token = fields.Char(string='IPBT Token')
-    fiscal_comment = fields.Text(u'Observação Fiscal')
+    ipbt_token = fields.Char(string=u'IPBT Token')
+    ibpt_update_days = fields.Integer(string=u'IPBT Token')

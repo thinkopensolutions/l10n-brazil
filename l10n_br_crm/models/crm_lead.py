@@ -61,22 +61,14 @@ class CrmLead(models.Model):
 
         :Return: True or False.
         """
-        result = True
-        if not self.inscr_est:
-            return result
-        if self.inscr_est != 'ISENTO' or self.partner_name:
-            state_code = self.state_id.code or ''
-            uf = state_code.lower()
-            try:
-                mod = __import__(
-                    'openerp.addons.l10n_br_base.tools.fiscal',
-                    globals(), locals(), 'fiscal')
-                validate = getattr(mod, 'validate_ie_%s' % uf)
-                result = validate(self.inscr_est)
-            except AttributeError:
-                result = fiscal.validate_ie_param(uf, self.inscr_est)
-        if not result:
-            raise ValidationError(u"Inscrição Estadual Invalida!")
+        for record in self:
+            result = True
+            if record.inscr_est and record.cnpj and record.state_id:
+                state_code = record.state_id.code or ''
+                uf = state_code.lower()
+                result = fiscal.validate_ie(uf, record.inscr_est)
+            if not result:
+                raise ValidationError(u"Inscrição Estadual Invalida!")
 
     @api.onchange('cnpj', 'country_id')
     def _onchange_cnpj(self):

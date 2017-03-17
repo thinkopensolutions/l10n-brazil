@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2009  Renato Lima - Akretion                                  #
+# Copyright (C) 2009  Renato Lima - Akretion
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
 
 from lxml import etree
 
-from openerp import models, fields, api
+from openerp import models, fields, api, _
 
 from openerp.addons.l10n_br_account.models.account_invoice import (
     OPERATION_TYPE)
@@ -42,85 +42,93 @@ class AccountInvoice(models.Model):
         company = self.env['res.company'].browse(self.env.user.company_id.id)
         return company[default_fo_category[invoice_fiscal_type][invoice_type]]
 
-    fiscal_type = fields.Selection(PRODUCT_FISCAL_TYPE,
-                                   'Tipo Fiscal',
-                                   required=True,
-                                   default=PRODUCT_FISCAL_TYPE_DEFAULT)
+    fiscal_type = fields.Selection(
+        PRODUCT_FISCAL_TYPE,
+        'Tipo Fiscal',
+        default=PRODUCT_FISCAL_TYPE_DEFAULT
+    )
     fiscal_category_id = fields.Many2one(
-        'l10n_br_account.fiscal.category', 'Categoria Fiscal',
-        readonly=True, states={'draft': [('readonly', False)]},
-        default=_default_fiscal_category)
-
-    fiscal_document_id = fields.Many2one(
-        'l10n_br_account.fiscal.document', 'Documento', readonly=True,
+        'l10n_br_account.fiscal.category',
+        'Categoria Fiscal',
+        readonly=True,
         states={'draft': [('readonly', False)]},
-        default=_default_fiscal_document)
+        default=_default_fiscal_category
+    )
+    fiscal_document_id = fields.Many2one(
+        'l10n_br_account.fiscal.document',
+        'Documento',
+        readonly=True,
+        states={'draft': [('readonly', False)]},
+        default=_default_fiscal_document
+    )
     fiscal_document_electronic = fields.Boolean(
-        related='fiscal_document_id.electronic')
+        related='fiscal_document_id.electronic'
+    )
     document_serie_id = fields.Many2one(
-        'l10n_br_account.document.serie', u'Série',
+        'l10n_br_account.document.serie',
+        u'Série',
         domain="[('fiscal_document_id', '=', fiscal_document_id),\
-        ('company_id','=',company_id)]", readonly=True,
+        ('company_id','=',company_id)]",
+        readonly=True,
         states={'draft': [('readonly', False)]},
         default=_default_fiscal_document_serie)
     state = fields.Selection(selection_add=[
-                         ('nfse_export', u'Enviar para Prefeitura'),
-                         ('nfse_issuing', u'WAITING FOR ISSUING APPROVAL'),
-                         ('nfse_exception', u'Erro de autorização da Prefeitura'),
-                         ('nfse_cancelled', u'Waiting for Cancellation'),
-                         ('nfse_denied', u'Denegada na Prefeitura')])
-    
+        ('nfse_export', u'Enviar para Prefeitura'),
+        ('nfse_issuing', u'WAITING FOR ISSUING APPROVAL'),
+        ('nfse_exception', u'Erro de autorização da Prefeitura'),
+        ('nfse_cancelled', u'Waiting for Cancellation'),
+        ('nfse_denied', u'Denegada na Prefeitura')])
+
     nfse_description = fields.Text('NFS-e Description')
     electornic_document_number = fields.Char('Electronic Doc Number')
 
     @api.multi
     def write(self, vals):
         if 'electornic_document_number' in vals.keys() and vals['electornic_document_number']:
-            vals.update({'number' : vals['electornic_document_number']})
-        return super(AccountInvoice,self).write(vals)
-    
+            vals.update({'number': vals['electornic_document_number']})
+        return super(AccountInvoice, self).write(vals)
+
     @api.multi
     def nfse_check(self):
         for record in self:
             return True
-        
-    
-    @api.one    
+
+    @api.one
     def nfse_issue(self):
         self.write({'state': 'nfse_issuing'})
         return True
-    @api.one   
+
+    @api.one
     def check_nfse_status(self):
-        #consult status of nfse and update
+        # consult status of nfse and update
         self.signal_workflow('invoice_open_nfse')
         return True
-    
+
     def nfse_cancel(self):
         self.write({'state': 'nfse_cancelled'})
         return True
-    
-    #open : when nfse is issued
-    #nfse_exception : when there is some unexpected issue in generating nfse
-    #nfse_denied : when nfse fails in authorization
+
+    # open : when nfse is issued
+    # nfse_exception : when there is some unexpected issue in generating nfse
+    # nfse_denied : when nfse fails in authorization
     @api.one
     def action_invoice_send_nfse(self):
-        self.write({'state' : 'open'})
-        #self.write({'state' : 'nfse_exception'})
-        #self.write({'state' : 'nfse_denied'})
+        self.write({'state': 'open'})
+        # self.write({'state' : 'nfse_exception'})
+        # self.write({'state' : 'nfse_denied'})
         return True
-    
+
     @api.multi
     def nfse_cancel(self):
         self.ensure_one()
-        if self.type == 'out_invoice' and self.fiscal_document_electronic == True and self.state in ['open', 'invoice_issuing']:
-            self.write({'state' : 'nfse_cancelled'})
+        if self.type == 'out_invoice' and self.fiscal_document_electronic == True and self.state in ['open',
+                                                                                                     'invoice_issuing']:
+            self.write({'state': 'nfse_cancelled'})
             return True
         else:
-            #cancel nfse here
+            # cancel nfse here
             return self.button_cancel()
-        
-        
-        
+
     def button_cancel(self, cr, uid, ids, context=None):
         assert len(ids) == 1, ('This option should only be used for a single '
                                'id at a time.')
@@ -128,6 +136,40 @@ class AccountInvoice(models.Model):
             context = {}
         inv = self.browse(cr, uid, ids[0], context=context)
         return super(AccountInvoice, self).action_cancel(cr, uid, [inv.id], context)
+
+    @api.onchange('fiscal_document_id')
+    def onchange_fiscal_document_id(self):
+        self.document_serie_id = self.company_id.document_serie_service_id
+
+    @api.model
+    def fields_view_get(self, view_id=None, view_type='form',
+                        toolbar=False, submenu=False):
+        context = self.env.context
+        active_id = context.get('active_id')
+        fiscal_document_code = context.get('fiscal_document_code')
+        nfse_form = ('l10n_br_account_service.'
+                     'l10n_br_account_service_nfse_form')
+        nfse_tree = ('l10n_br_account_service.'
+                     'l10n_br_account_service_nfse_tree')
+        nfse_views = {'form': nfse_form, 'tree': nfse_tree}
+
+        if active_id:
+            invoice = self.browse(active_id)
+            fiscal_document_code = invoice.fiscal_document_id.code
+
+        if nfse_views.get(view_type) and fiscal_document_code == u'XX':
+            view_id = self.env.ref(nfse_views.get(view_type)).id
+
+        return super(AccountInvoice, self).fields_view_get(
+            view_id=view_id, view_type=view_type,
+            toolbar=toolbar, submenu=submenu)
+
+    @api.multi
+    def open_fiscal_document(self):
+        """return action to open NFS-e form"""
+        result = super(AccountInvoice, self).open_fiscal_document()
+        result['name'] = _('NFS-e')
+        return result
 
 
 class AccountInvoiceLine(models.Model):
@@ -164,7 +206,7 @@ class AccountInvoiceLine(models.Model):
             result['arch'] = etree.tostring(eview)
 
         return result
-    
+
     # set type_tax_use so that It can get taxes from company
     @api.multi
     def product_id_change(self, product, uom_id, qty=0, name='',
