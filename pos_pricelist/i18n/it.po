@@ -1,0 +1,161 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# * pos_pricelist
+# 
+# Translators:
+# Paolo Valier, 2016
+msgid ""
+msgstr ""
+"Project-Id-Version: pos (8.0)\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-05-01 05:28+0000\n"
+"PO-Revision-Date: 2016-05-01 08:45+0000\n"
+"Last-Translator: Paolo Valier\n"
+"Language-Team: Italian (http://www.transifex.com/oca/OCA-pos-8-0/language/it/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Language: it\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,amount:0 view:website:point_of_sale.report_receipt
+msgid "Amount"
+msgstr "Importo"
+
+#. module: pos_pricelist
+#. openerp-web
+#: code:addons/pos_pricelist/static/src/js/models.js:402
+#, python-format
+msgid ""
+"At least one pricelist has no active version ! Please create or activate "
+"one."
+msgstr "Almeno un Listino Prezzi non ha una versione attiva! Creare ed attivarne una."
+
+#. module: pos_pricelist
+#: field:pos.order.tax,base:0 view:website:point_of_sale.report_receipt
+msgid "Base"
+msgstr ""
+
+#. module: pos_pricelist
+#: field:account.fiscal.position.tax,company_id:0
+msgid "Company"
+msgstr "Azienda"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,create_uid:0
+msgid "Created by"
+msgstr "Creato da"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,create_date:0
+msgid "Created on"
+msgstr "Creato il"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,display_name:0
+msgid "Display Name"
+msgstr "Nome da visualizzare"
+
+#. module: pos_pricelist
+#: help:pos.config,display_price_with_taxes:0
+msgid "Display Prices with taxes on POS"
+msgstr "Visualizza Prezzi con imposte nel POS"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,id:0
+msgid "ID"
+msgstr "ID"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,__last_update:0
+msgid "Last Modified on"
+msgstr "Ultima Modifica il"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,write_uid:0
+msgid "Last Updated by"
+msgstr "Ultimo Aggiornamento di"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,write_date:0
+msgid "Last Updated on"
+msgstr "Ultimo Aggiornamento il"
+
+#. module: pos_pricelist
+#: model:ir.model,name:pos_pricelist.model_pos_order_line
+msgid "Lines of Point of Sale"
+msgstr "Righe del Punto Vendita"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,pos_order:0
+msgid "POS Order"
+msgstr "Ordine POS"
+
+#. module: pos_pricelist
+#: model:product.template,name:pos_pricelist.pos_product_product_1_product_template
+msgid "POS Product 1"
+msgstr "Prodotto 1 POS"
+
+#. module: pos_pricelist
+#: model:product.template,name:pos_pricelist.pos_product_product_2_product_template
+msgid "POS Product 2"
+msgstr "Prodotto 2 POS"
+
+#. module: pos_pricelist
+#: model:product.template,name:pos_pricelist.pos_product_product_3_product_template
+msgid "POS Product 3"
+msgstr "Prodotto 3 POS"
+
+#. module: pos_pricelist
+#: model:product.template,name:pos_pricelist.pos_product_product_4_product_template
+msgid "POS Product 4"
+msgstr "Prodotto 4 POS"
+
+#. module: pos_pricelist
+#: view:pos.order:pos_pricelist.view_pos_pos_form
+msgid "Payments"
+msgstr "Pagamenti"
+
+#. module: pos_pricelist
+#: model:ir.model,name:pos_pricelist.model_pos_order
+msgid "Point of Sale"
+msgstr "Punto Vendita"
+
+#. module: pos_pricelist
+#: field:pos.config,display_price_with_taxes:0
+msgid "Price With Taxes"
+msgstr "Prezzi con Imposte"
+
+#. module: pos_pricelist
+#. openerp-web
+#: code:addons/pos_pricelist/static/src/js/models.js:401
+#, python-format
+msgid "Pricelist Error"
+msgstr "Errore Listino di Vendita"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,tax:0 view:website:point_of_sale.report_receipt
+msgid "Tax"
+msgstr "Imposta"
+
+#. module: pos_pricelist
+#: field:pos.order.tax,name:0
+msgid "Tax Description"
+msgstr "Descrizione Imposta"
+
+#. module: pos_pricelist
+#: view:pos.order:pos_pricelist.view_pos_pos_form field:pos.order,taxes:0
+#: field:pos.order.line,tax_ids:0
+msgid "Taxes"
+msgstr "Imposte"
+
+#. module: pos_pricelist
+#: model:ir.model,name:pos_pricelist.model_account_fiscal_position_tax
+msgid "Taxes Fiscal Position"
+msgstr "Posizione Fiscale Imposte"
+
+#. module: pos_pricelist
+#: view:pos.order:pos_pricelist.view_pos_pos_form
+msgid "Taxes detail"
+msgstr "Dettaglio Imposte"
