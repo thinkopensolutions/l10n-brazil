@@ -57,7 +57,7 @@
                 <field name="fiscal_type" position="replace">
                     <field name="fiscal_type"/>
                 </field>
-                <button name="invoice_validate" position="replace">
+                <button name="invoice_open" position="replace">
                     <button name="invoice_validate"
                             attrs="{'invisible':['|',('state','!=','draft'),('fiscal_type','!=','service')]}"
                             string="Validate nfse" class="oe_highlight"/>
