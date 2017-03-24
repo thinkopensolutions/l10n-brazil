@@ -76,6 +76,24 @@
             </field>
         </record>
 
+        <!-- Supplier Invoice views -->
+        <record model="ir.ui.view" id="account_invoice_supplier_form">
+            <field name="name">supplier.invoice.form</field>
+            <field name="model">account.invoice</field>
+            <field name="inherit_id" ref="account.invoice_supplier_form"/>
+            <field name="arch" type="xml">
+                <field name="fiscal_type" position="replace">
+                    <field name="fiscal_type"/>
+                </field>
+                <button name="invoice_open" position="replace">
+                    <button name="invoice_validate"
+                            attrs="{'invisible':['|',('state','!=','draft'),('fiscal_type','!=','service')]}"
+                            string="Validate nfse" class="oe_highlight"/>
+
+                </button>
+            </field>
+        </record>
+
         <record id="action_invoice_tree_service_out" model="ir.actions.act_window">
             <field name="name">Nota Fiscal de Serviço de Saida</field>
             <field name="res_model">account.invoice</field>
