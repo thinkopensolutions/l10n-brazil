@@ -394,7 +394,12 @@ function pos_pricelist_models(instance, module) {
 
             var self = this;
             var db = database;
-
+            var product_id = 0;
+            if (product.product_tmpl_id) {
+                product_id = product.product_tmpl_id;
+            } else {
+                product_id = product.id;
+            }
             // get a valid version
             var version = this.find_valid_pricelist_version(db, pricelist_id);
             if (version == false) {
@@ -419,7 +424,7 @@ function pos_pricelist_models(instance, module) {
             for (i = 0, len = db.pricelist_item_sorted.length; i < len; i++) {
                 var item = db.pricelist_item_sorted[i];
                 if ((item.product_id === false
-                    || item.product_id[0] === product.id) &&
+                    || item.product_id[0] === product_id) &&
                     (item.categ_id === false
                     || categ_ids.indexOf(item.categ_id[0]) !== -1) &&
                     (item.price_version_id[0] === version.id)) {
@@ -428,7 +433,7 @@ function pos_pricelist_models(instance, module) {
             }
 
             var results = {};
-            results[product.id] = 0.0;
+            results[product_id] = 0.0;
             var price_types = {};
             var price = false;
 
@@ -439,10 +444,18 @@ function pos_pricelist_models(instance, module) {
                 if (rule.min_quantity && qty < rule.min_quantity) {
                     continue;
                 }
-                if (rule.product_id && rule.product_id[0]
-                    && product.id != rule.product_id[0]) {
-                    continue;
+                if (rule.product_id) {
+                    if (rule.product_id && rule.product_id[0]
+                        && product_id != rule.product_id[0]) {
+                        continue;
+                    }
+                } else {
+                    if (rule.product_tmpl_id && rule.product_tmpl_id[0]
+                        && product_id != rule.product_tmpl_id[0]) {
+                        continue;
+                    }
                 }
+
                 if (rule.categ_id) {
                     var cat_id = product.categ_id[0];
                     while (cat_id) {
