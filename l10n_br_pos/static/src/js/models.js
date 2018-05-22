@@ -136,7 +136,8 @@ function l10n_br_pos_models(instance, module) {
             var lookup = {};
             for (var i = 0, len = self.models.length; i < len; i++) {
                 if (self.models[i].model === model_name) {
-                    lookup[i] = self.models[i]
+                    lookup[i] = self.models[i];
+		    break;
                 }
             }
             return lookup

@@ -7,7 +7,7 @@ from openerp import models, fields, api, _
 import os
 import base64
 import time
-from openerp.addons.nfe.tools.misc import mount_path_nfe
+#from openerp.addons.nfe.tools.misc import mount_path_nfe
 
 
 class NfeXmlPeriodicExport(models.TransientModel):
